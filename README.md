@@ -8,6 +8,8 @@ Independent React/TypeScript/Vite navigation module for personal winemaking.
 
 Wine Production has its own source, package version, tests, GitHub Actions workflow, and GitHub Pages deployment. Ordinary wine-page changes happen entirely in this repository. LifeOS Home links to this published URL; it does not build or import this application. The local styles are a copy of the established LifeOS visual conventions, with no dependency on the Home checkout or a shared package.
 
+**Durable website checkpoint:** use an authorized Life Command Center connection to find the Notes & Memory record titled **Wine Production website — implementation and release checkpoint**. Its private URL is kept out of public source.
+
 ## Navigation edition
 
 Six sections open the original batch register, shared Tasks, batch-management guide, Wine Production Drive folder, register history, and Wine Making Area notes. Existing Notion and Drive permissions remain authoritative. The site does not read private data, show live batch state, or save production changes.
