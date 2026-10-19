@@ -45,7 +45,10 @@ try {
     await page
       .getByRole("heading", { level: 1, name: "Wine Production." })
       .waitFor();
-    assert.equal(await page.locator(".wine-card").count(), 6);
+    assert.equal(await page.locator(".wine-card").count(), 8);
+    for (const name of ["Active Batches", "Batch History", "Recipe Library", "Approval Status"]) {
+      await page.getByRole("heading", { name, exact: true }).waitFor();
+    }
     assert.equal(
       await page.locator(".release-version").textContent(),
       `v${version}`,

@@ -12,7 +12,7 @@ Wine Production has its own source, package version, tests, GitHub Actions workf
 
 ## Navigation edition
 
-Six sections open the original batch register, shared Tasks, batch-management guide, Wine Production Drive folder, register history, and Wine Making Area notes. Existing Notion and Drive permissions remain authoritative. The site does not read private data, show live batch state, or save production changes.
+Eight sections cover active batches, batch history, the reusable Recipe Library, approval review, shared Tasks, batch-management guide, Wine Production Drive folder, and Wine Making Area notes. Active and history routes open the canonical register; choose the named view there. Recipe and approval routes open the existing approved Wine Making Area entry point, which now contains the library and linked review/approved views. Draft, Testing, Approved and Archived describe recipes; production stages continue to describe physical batches. Existing Notion and Drive permissions remain authoritative. The site does not read private data, show live batch state or approval counts, or save production changes.
 
 The three additional entry-point URLs (wine register, guide, Drive folder) were explicitly approved for public source on 2026-10-18. Individual batch, inventory, dated task, private media, postmortem and exploratory-idea deep links are excluded. No personal production records, measurements, original photographs, credentials or unauthenticated private integrations belong in this public repository.
 

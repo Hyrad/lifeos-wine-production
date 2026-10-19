@@ -60,17 +60,17 @@ export default function WinePage() {
           <section className="wine-start" aria-labelledby="wine-start-title">
             <div className="wine-start-copy">
               <span className="eyebrow">YOUR STARTING POINT</span>
-              <h2 id="wine-start-title">Pick up where your records live.</h2>
+              <h2 id="wine-start-title">From physical batches to reusable recipes.</h2>
               <p>
-                Open the register to find a batch. Continue with the original
-                notes, measurements, and instructions.
+                Follow production in the register. Review reusable methods and
+                their approval checks in the Wine Making dashboard.
               </p>
             </div>
             <External
-              href={wineSources.register}
+              href={wineSources.area}
               className="button wine-primary"
             >
-              Open my wine batches <ArrowUpRight size={16} aria-hidden="true" />
+              Open Wine Making dashboard <ArrowUpRight size={16} aria-hidden="true" />
             </External>
           </section>
 
@@ -90,7 +90,7 @@ export default function WinePage() {
             <SectionHeading
               id="wine-destinations-title"
               title="What would you like to work on?"
-              subtitle="Six ways into your existing winemaking workspace."
+              subtitle="Batches, history, recipes and approval review — with the original records in Notion."
             />
             <div className="wine-grid">
               {wineSections.map((section) => (
@@ -132,8 +132,9 @@ export default function WinePage() {
                 </h2>
                 <p>
                   Wine Making owns the domain. The wine register holds
-                  production records, and the guide holds the established
-                  workflow.
+                  physical production records. The separate Recipe Library
+                  holds reusable methods and verification, linked to those
+                  batches. The guide holds the established workflow.
                 </p>
               </div>
             </div>

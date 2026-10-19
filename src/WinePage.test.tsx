@@ -5,17 +5,19 @@ import { homePagePath, wineSources } from "./data/wine";
 import { sources } from "./data/navigation";
 
 describe("Wine Production navigation", () => {
-  it("offers six activity sections with only approved external destinations", () => {
+  it("offers production and recipe routes with only approved external destinations", () => {
     render(<WinePage />);
     expect(
       screen.getByRole("heading", { level: 1, name: "Wine Production." }),
     ).toBeVisible();
     for (const title of [
-      "My Wine Batches",
+      "Active Batches",
+      "Batch History",
+      "Recipe Library",
+      "Approval Status",
       "Production Actions",
       "Methods & Guides",
       "Photos & Documents",
-      "Wine Archive",
       "Ideas & Experiments",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeVisible();
@@ -43,6 +45,9 @@ describe("Wine Production navigation", () => {
       screen.getByRole("link", { name: "Back to LifeOS Home" }),
     ).toHaveAttribute("href", homePagePath);
     expect(screen.getByText(/other areas may also appear/)).toBeVisible();
+    expect(screen.getByRole("link", { name: /Open Wine Making for the recipe library/ })).toHaveAttribute("href", wineSources.area);
+    expect(screen.getByRole("link", { name: /Open Wine Making for approval review/ })).toHaveAttribute("href", wineSources.area);
+    expect(screen.getByText(/A successful batch alone does not approve a recipe/)).toBeVisible();
   });
 
   it("keeps private content out and does not fetch live records", () => {
