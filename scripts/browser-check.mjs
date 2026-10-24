@@ -66,6 +66,19 @@ try {
         .getAttribute("href"),
       "https://hyrad.github.io/lifeos-home/",
     );
+    const manifestURL = await page.locator('link[rel="manifest"]').getAttribute("href");
+    const appManifest = await page.evaluate(async href => {
+      const response = await fetch(href);
+      if (!response.ok) throw new Error("Manifest unavailable");
+      return response.json();
+    }, manifestURL);
+    assert.equal(appManifest.display, "standalone");
+    assert.equal(appManifest.scope, "/lifeos-wine-production/");
+    for (const icon of appManifest.icons) {
+      const response = await page.request.get(new URL(icon.src, new URL(manifestURL, url)).href);
+      assert.equal(response.status(), 200);
+      assert.match(response.headers()["content-type"], /image\/png/);
+    }
     const scan = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();

@@ -46,3 +46,7 @@ pnpm test:browser
 The initial design was extracted from LifeOS Home v1.1.0, source commit `ccfb223feaba2bad211360bb3d77f8ad5747d82d`. The standalone module starts at v1.0.0. No personal data migration occurred. Home's former `/lifeos-home/wine/` location is retained there as a compatibility redirect after this site is verified.
 
 The Notion-to-Markdown memory refactor remains deferred.
+
+## iPhone Home Screen app
+
+Open the deployed application in Safari → Share → Add to Home Screen → enable Open as Web App → Add. The manifest, Apple touch icon and standalone safe-area styling support a separate app icon/window. Physical iPhone installation remains a device acceptance check. No service worker, offline caching or push notifications are included.
