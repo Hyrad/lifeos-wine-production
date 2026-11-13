@@ -16,6 +16,8 @@ export const winePagePath = import.meta.env.BASE_URL;
 // Individual batch, inventory, task, photo, and idea URLs are intentionally absent.
 export const wineSources = {
   area: notion("472be780ce1a8247b9ed8166a00fb5ad"),
+  // Canonical Recipe Ledger view, linked directly instead of through the Area.
+  recipeLedger: "https://app.notion.com/p/3a6a0c551e16470cbb5706a35e97a625?v=9ed0094ad0be433bb9d285aead6c3ac0",
   register: notion("5a4be780ce1a82b1a032819846b76317"),
   // Direct saved views approved for the three production cards, November 13, 2026.
   planned: "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a8156819c000c933e332a",
@@ -69,12 +71,12 @@ export const libraryAndSupportSections = [
     id: "recipes",
     title: "Recipe Library",
     description: "Find reusable methods, source notes and versions, linked to the batches that test them.",
-    label: "Open Wine Making for the recipe library",
-    href: wineSources.area,
+    label: "Open Recipe Ledger",
+    href: wineSources.recipeLedger,
     icon: BookOpen,
     tone: "amber",
     category: "REUSABLE METHODS",
-    note: "Open Wine Recipe Library from the Wine Making dashboard. Recipes are separate from physical batches and retain their source evidence.",
+    note: "Opens the dedicated Recipe Ledger in Notion directly. Recipes remain separate from physical production batches.",
   },
   {
     id: "approvals",
