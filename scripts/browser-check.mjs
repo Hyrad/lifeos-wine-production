@@ -52,7 +52,8 @@ try {
         const approval = await page.locator("#approvals").boundingBox();
         const actions = await page.locator("#actions").boundingBox();
         ok(recipe.y > primary[0].y + primary[0].height && Math.abs(recipe.y - approval.y) < 1 && Math.abs(recipe.y - actions.y) < 1, `${name}: Recipe Library leads row two`);
-        ok(Math.abs(recipe.x - primary[0].x) < 1, `${name}: Recipe Library starts at left`);
+        const frame = await page.locator(".wine-production").boundingBox();
+        ok(Math.abs(recipe.x - frame.x) < 1, `${name}: Recipe Library aligns with Production frame`);
       } else {
         const grid = await page.locator(".wine-resources-grid").boundingBox();
         ok(Math.abs(recipe.width - grid.width) < 1, `${name}: Recipe Library spans tablet resources`);
