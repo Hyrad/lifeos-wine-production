@@ -47,7 +47,7 @@ describe("Wine Production navigation", () => {
       screen.getByRole("link", { name: "Back to LifeOS Home" }),
     ).toHaveAttribute("href", homePagePath);
     expect(screen.getByText(/other areas may also appear/)).toBeVisible();
-    expect(screen.getByRole("link", { name: /Open Wine Making for the recipe library/ })).toHaveAttribute("href", wineSources.area);
+    expect(screen.getByRole("link", { name: /Open Recipe Ledger/ })).toHaveAttribute("href", wineSources.recipeLedger);
     expect(screen.getByRole("link", { name: /Open Wine Making for approval review/ })).toHaveAttribute("href", wineSources.area);
     expect(screen.getByText(/A successful batch alone does not approve a recipe/)).toBeVisible();
   });
@@ -83,9 +83,9 @@ describe("Wine Production navigation", () => {
 
   it("shows the requested release label from package metadata with a valid internal version", () => {
     render(<WinePage />);
-    expect(displayVersion).toBe("1.202");
+    expect(displayVersion).toBe("1.203");
     expect(version).toBe(`${displayVersion}.0`);
-    expect(screen.getAllByText("v1.202")).toHaveLength(3);
+    expect(screen.getAllByText("v1.203")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {
