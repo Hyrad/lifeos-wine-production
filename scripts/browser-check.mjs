@@ -52,7 +52,8 @@ try {
         const approval = await page.locator("#approvals").boundingBox();
         const actions = await page.locator("#actions").boundingBox();
         ok(recipe.y > primary[0].y + primary[0].height && Math.abs(recipe.y - approval.y) < 1 && Math.abs(recipe.y - actions.y) < 1, `${name}: Recipe Library leads row two`);
-        ok(Math.abs(recipe.x - primary[0].x) < 1, `${name}: Recipe Library starts at left`);
+        const frame = await page.locator(".wine-production").boundingBox();
+        ok(Math.abs(recipe.x - frame.x) < 1, `${name}: Recipe Library aligns with Production frame`);
       } else {
         const grid = await page.locator(".wine-resources-grid").boundingBox();
         ok(Math.abs(recipe.width - grid.width) < 1, `${name}: Recipe Library spans tablet resources`);
@@ -127,7 +128,7 @@ try {
   equal(new URL(page.url()).hash, "#planned", "keyboard section navigation");
   // All external navigations are intercepted; no Notion/Drive/private content is read.
   const destinations = await page.locator('a[href^="https://"]').evaluateAll(links => [...new Set(links.map(link => link.href))]);
-  equal(destinations.length, 8, "same approved destination set");
+  equal(destinations.length, 11, "original destinations and three filtered batch views");
   for (const destination of destinations) {
     await context.route(destination, route => route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Navigation probe</title><p>Navigation probe</p>" }));
     await page.goto(url);
@@ -148,4 +149,4 @@ try {
   await context.close();
 } finally { await browser.close(); }
 await writeFile(`${shots}/browser-result.json`, JSON.stringify({ status: "PASS", checks, viewports: viewports.length, axeRuns, version, displayVersion, passiveExternalRequests: 0, physicalDeviceAcceptance: "pending", geometry: evidence }, null, 2));
-console.log(`Browser PASS: ${checks} assertions, ${viewports.length} viewports, ${axeRuns} axe scans; keyboard, all retained anchors, 8 intercepted outbound destinations; zero unexpected external requests. Physical iPhone/iPad installation remains unverified.`);
+console.log(`Browser PASS: ${checks} assertions, ${viewports.length} viewports, ${axeRuns} axe scans; keyboard, all retained anchors, 11 intercepted outbound destinations; zero unexpected external requests. Physical iPhone/iPad installation remains unverified.`);

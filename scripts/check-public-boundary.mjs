@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 
-// This allowlist is the shipped v1.2.0 publication boundary, not a list of
-// discovered personal records. Adding destinations requires separate approval.
+// Keep the original public destinations plus the three exact existing
+// filtered batch-view URLs the owner requested on 2026-11-13.
+// Private individual batch and recipe URLs remain prohibited.
 const approved = new Set([
   "https://hyrad.github.io/lifeos-home/",
   "https://app.notion.com/p/3afbe780ce1a83b883d18111ca195c69",
@@ -10,6 +11,9 @@ const approved = new Set([
   "https://app.notion.com/p/5a5be780ce1a83409023815e44656150",
   "https://app.notion.com/p/472be780ce1a8247b9ed8166a00fb5ad",
   "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317",
+  "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a8156819c000c933e332a",
+  "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a81f0aeae000cc4c191a3",
+  "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a81dca1a0000ce9e8a66b",
   "https://app.notion.com/p/3a2be780ce1a812d8785f5d971da276e",
   "https://drive.google.com/drive/folders/1tyjh5dS6DLKhm1A3bweBlqqgUn0p_pJV",
 ]);
@@ -54,4 +58,4 @@ for (const path of ["index.html", "manifest.webmanifest", "favicon.svg", ...asse
 }
 assert.deepEqual([...found].sort(), [...approved].sort());
 assert.deepEqual((await readdir("dist/icons")).sort(), ["apple-touch-icon.png", "icon-192.png", "icon-512.png"]);
-console.log(`Public boundary PASS: ${scanned} text artifacts; only the 8 shipped destinations; no new private identifiers, hosts, credential patterns, source maps or external assets.`);
+console.log(`Public boundary PASS: ${scanned} text artifacts; only the ${approved.size} approved destinations; no new private identifiers, hosts, credential patterns, source maps or external assets.`);

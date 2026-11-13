@@ -17,6 +17,10 @@ export const winePagePath = import.meta.env.BASE_URL;
 export const wineSources = {
   area: notion("472be780ce1a8247b9ed8166a00fb5ad"),
   register: notion("5a4be780ce1a82b1a032819846b76317"),
+  // Direct saved views approved for the three production cards, November 13, 2026.
+  planned: "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a8156819c000c933e332a",
+  active: "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a81f0aeae000cc4c191a3",
+  history: "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a81dca1a0000ce9e8a66b",
   guide: notion("3a2be780ce1a812d8785f5d971da276e"),
   documents:
     "https://drive.google.com/drive/folders/1tyjh5dS6DLKhm1A3bweBlqqgUn0p_pJV",
@@ -29,11 +33,11 @@ export const productionSections = [
     description:
       "Prepare future production. These batches have not started yet.",
     label: "Open planned batches",
-    href: wineSources.register,
+    href: wineSources.planned,
     icon: CalendarDays,
     tone: "amber",
     category: "BEFORE YOU START",
-    note: "In the register, choose Planned batches. A plan is not a confirmed production start.",
+    note: "Opens the filtered Planned batches view directly. A plan is not a production start.",
   },
   {
     id: "batches",
@@ -41,22 +45,22 @@ export const productionSections = [
     description:
       "Follow fermentation and processing already underway, from the current stage to the next intervention.",
     label: "Open active batches",
-    href: wineSources.register,
+    href: wineSources.active,
     icon: Wine,
     tone: "rose",
     category: "IN PRODUCTION",
-    note: "In the register, choose Active batches for the recorded stage and next action.",
+    note: "Opens the filtered Active batches view directly for current stages and next actions.",
   },
   {
     id: "archive",
     title: "Production History",
     description: "Revisit bottled, completed and historical batches, with their observations and lessons.",
     label: "Open production history",
-    href: wineSources.register,
+    href: wineSources.history,
     icon: Archive,
     tone: "lilac",
     category: "PRODUCTION HISTORY",
-    note: "In the register, choose Batch history. Completed and abandoned batches stay here; a recipe is not production history.",
+    note: "Opens the filtered Batch history view directly: completed or discontinued production, not unstarted plans.",
   },
 ] as const;
 

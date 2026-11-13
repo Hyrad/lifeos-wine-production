@@ -1,8 +1,8 @@
 {
   "name": "lifeos-wine-production",
   "private": true,
-  "version": "1.201.0",
-  "displayVersion": "1.201",
+  "version": "1.202.0",
+  "displayVersion": "1.202",
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "engines": {
