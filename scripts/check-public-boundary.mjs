@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 
-// Keep the original public destinations plus the three exact existing
-// filtered batch-view URLs the owner requested on 2026-11-13.
-// Private individual batch and recipe URLs remain prohibited.
+// Preserve the original public destinations, the three existing filtered batch
+// views, and the specific Recipe Ledger view requested for direct navigation.
+// Private individual batch and recipe entry URLs remain prohibited.
 const approved = new Set([
   "https://hyrad.github.io/lifeos-home/",
   "https://app.notion.com/p/3afbe780ce1a83b883d18111ca195c69",
   "https://app.notion.com/p/3f1be780ce1a81ccbd9ce0331175706f",
   "https://app.notion.com/p/5a5be780ce1a83409023815e44656150",
   "https://app.notion.com/p/472be780ce1a8247b9ed8166a00fb5ad",
+  "https://app.notion.com/p/3a6a0c551e16470cbb5706a35e97a625?v=9ed0094ad0be433bb9d285aead6c3ac0",
   "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317",
   "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a8156819c000c933e332a",
   "https://app.notion.com/p/5a4be780ce1a82b1a032819846b76317?v=3febe780ce1a81f0aeae000cc4c191a3",
