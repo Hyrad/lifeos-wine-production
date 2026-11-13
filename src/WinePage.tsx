@@ -15,7 +15,38 @@ import {
   Sidebar,
   Topbar,
 } from "./components/Shared";
-import { homePagePath, wineSections, wineSources } from "./data/wine";
+import {
+  homePagePath,
+  libraryAndSupportSections,
+  productionSections,
+  wineSections,
+  wineSources,
+} from "./data/wine";
+
+function WineCard({ section, primary = false }: {
+  section: typeof wineSections[number];
+  primary?: boolean;
+}) {
+  return (
+    <article
+      className={`wine-card${primary ? " wine-production-card" : ""}${section.id === "recipes" ? " wine-recipe-card" : ""}`}
+      id={section.id}
+      aria-labelledby={`${section.id}-title`}
+    >
+      <div className="card-top">
+        <IconBox icon={section.icon} tone={section.tone} />
+        <span className="wine-category">{section.category}</span>
+      </div>
+      <h3 id={`${section.id}-title`}>{section.title}</h3>
+      <p className="wine-card-description">{section.description}</p>
+      <External href={section.href} className="text-link wine-card-link">
+        {section.label}
+        <ArrowUpRight size={15} aria-hidden="true" />
+      </External>
+      <p className="wine-card-note">{section.note}</p>
+    </article>
+  );
+}
 
 export default function WinePage() {
   return (
@@ -40,12 +71,10 @@ export default function WinePage() {
                 Wine Production<span>.</span>
               </h1>
               <p className="wine-intro">
-                A place for every batch, every lesson,
-                <br className="wine-desktop-break" /> and everything you need
-                along the way.
+                Plan a batch. Follow its progress. Learn from what you make.
               </p>
               <p className="home-identity">
-                Surface type: Home / Operator Window · Domain: Wine Making
+                Navigation only · Your current records stay in Notion.
               </p>
             </div>
             <div className="wine-emblem" aria-hidden="true">
@@ -57,21 +86,33 @@ export default function WinePage() {
             </div>
           </section>
 
-          <section className="wine-start" aria-labelledby="wine-start-title">
-            <div className="wine-start-copy">
-              <span className="eyebrow">YOUR STARTING POINT</span>
-              <h2 id="wine-start-title">From physical batches to reusable recipes.</h2>
-              <p>
-                Follow production in the register. Review reusable methods and
-                their approval checks in the Wine Making dashboard.
-              </p>
+          <section
+            className="wine-production"
+            aria-labelledby="wine-production-title"
+          >
+            <SectionHeading
+              id="wine-production-title"
+              title="Production"
+              subtitle="A clear place for each stage of a batch."
+            />
+            <div className="wine-grid wine-production-grid">
+              {productionSections.map((section) => (
+                <WineCard section={section} primary key={section.id} />
+              ))}
             </div>
-            <External
-              href={wineSources.area}
-              className="button wine-primary"
-            >
-              Open Wine Making dashboard <ArrowUpRight size={16} aria-hidden="true" />
-            </External>
+          </section>
+
+          <section className="section wine-resources" aria-labelledby="wine-resources-title">
+            <SectionHeading
+              id="wine-resources-title"
+              title="Recipes & workspace"
+              subtitle="Choose a method, review its approval, and find the tools to keep moving."
+            />
+            <div className="wine-grid wine-resources-grid">
+              {libraryAndSupportSections.map((section) => (
+                <WineCard section={section} key={section.id} />
+              ))}
+            </div>
           </section>
 
           <nav className="wine-jump-links" aria-label="Wine page sections">
@@ -82,43 +123,6 @@ export default function WinePage() {
               </a>
             ))}
           </nav>
-
-          <section
-            className="section wine-destinations"
-            aria-labelledby="wine-destinations-title"
-          >
-            <SectionHeading
-              id="wine-destinations-title"
-              title="What would you like to work on?"
-              subtitle="Batches, history, recipes and approval review — with the original records in Notion."
-            />
-            <div className="wine-grid">
-              {wineSections.map((section) => (
-                <article
-                  className="wine-card"
-                  id={section.id}
-                  key={section.id}
-                  aria-labelledby={`${section.id}-title`}
-                >
-                  <div className="card-top">
-                    <IconBox icon={section.icon} tone={section.tone} />
-                    <span className="wine-card-number">{section.number}</span>
-                  </div>
-                  <span className="wine-category">{section.category}</span>
-                  <h3 id={`${section.id}-title`}>{section.title}</h3>
-                  <p className="wine-card-description">{section.description}</p>
-                  <External
-                    href={section.href}
-                    className="text-link wine-card-link"
-                  >
-                    {section.label}
-                    <ArrowUpRight size={15} aria-hidden="true" />
-                  </External>
-                  <p className="wine-card-note">{section.note}</p>
-                </article>
-              ))}
-            </div>
-          </section>
 
           <section
             className="wine-source-panel section"
@@ -139,6 +143,9 @@ export default function WinePage() {
               </div>
             </div>
             <div className="wine-source-links">
+              <External href={wineSources.area} className="button wine-primary">
+                Open Wine Making dashboard <ArrowUpRight size={15} aria-hidden="true" />
+              </External>
               <External href={wineSources.area}>
                 Wine Making area <ArrowUpRight size={13} aria-hidden="true" />
               </External>

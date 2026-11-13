@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import WinePage from "./WinePage";
 import { homePagePath, wineSources } from "./data/wine";
 import { sources } from "./data/navigation";
+import { displayVersion, version } from "../package.json";
 
 describe("Wine Production navigation", () => {
   it("offers production and recipe routes with only approved external destinations", () => {
@@ -11,8 +12,9 @@ describe("Wine Production navigation", () => {
       screen.getByRole("heading", { level: 1, name: "Wine Production." }),
     ).toBeVisible();
     for (const title of [
+      "Planned Batches",
       "Active Batches",
-      "Batch History",
+      "Production History",
       "Recipe Library",
       "Approval Status",
       "Production Actions",
@@ -48,6 +50,36 @@ describe("Wine Production navigation", () => {
     expect(screen.getByRole("link", { name: /Open Wine Making for the recipe library/ })).toHaveAttribute("href", wineSources.area);
     expect(screen.getByRole("link", { name: /Open Wine Making for approval review/ })).toHaveAttribute("href", wineSources.area);
     expect(screen.getByText(/A successful batch alone does not approve a recipe/)).toBeVisible();
+  });
+
+  it("puts batch stages first, then recipes and every existing support section", () => {
+    render(<WinePage />);
+    const production = screen.getByRole("region", { name: "Production" });
+    expect(within(production).getAllByRole("heading", { level: 3 }).map(h => h.textContent)).toEqual([
+      "Planned Batches", "Active Batches", "Production History",
+    ]);
+    const resources = screen.getByRole("region", { name: "Recipes & workspace" });
+    expect(within(resources).getAllByRole("heading", { level: 3 }).map(h => h.textContent)).toEqual([
+      "Recipe Library", "Approval Status", "Production Actions", "Methods & Guides", "Photos & Documents", "Ideas & Experiments",
+    ]);
+    expect(within(production).getByText(/have not started yet/)).toBeVisible();
+    expect(within(production).getByText(/fermentation and processing already underway/i)).toBeVisible();
+    expect(within(production).getByText(/bottled, completed and historical batches/i)).toBeVisible();
+    for (const label of ["Open planned batches", "Open active batches", "Open production history"]) {
+      expect(within(production).getByRole("link", { name: new RegExp(`^${label}`) })).toHaveAttribute("href", wineSources.register);
+    }
+    // Keep old bookmarks valid even though Batch History is now Production History.
+    for (const id of ["batches", "archive", "recipes", "approvals", "actions", "methods", "documents", "ideas"]) {
+      expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
+      expect(screen.getByRole("navigation", { name: "Main navigation" }).querySelector(`a[href="#${id}"]`)).not.toBeNull();
+    }
+  });
+
+  it("shows the requested release label from package metadata with a valid internal version", () => {
+    render(<WinePage />);
+    expect(displayVersion).toBe("1.201");
+    expect(version).toBe(`${displayVersion}.0`);
+    expect(screen.getAllByText("v1.201")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {

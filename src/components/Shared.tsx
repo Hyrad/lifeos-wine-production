@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Compass } from "lucide-react";
-import { version } from "../../package.json";
+import { displayVersion as version } from "../../package.json";
 import { sources } from "../data/navigation";
 import { homePagePath, wineSections } from "../data/wine";
 
