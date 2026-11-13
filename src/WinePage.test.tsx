@@ -65,9 +65,15 @@ describe("Wine Production navigation", () => {
     expect(within(production).getByText(/have not started yet/)).toBeVisible();
     expect(within(production).getByText(/fermentation and processing already underway/i)).toBeVisible();
     expect(within(production).getByText(/bottled, completed and historical batches/i)).toBeVisible();
-    for (const label of ["Open planned batches", "Open active batches", "Open production history"]) {
-      expect(within(production).getByRole("link", { name: new RegExp(`^${label}`) })).toHaveAttribute("href", wineSources.register);
+    for (const [label, href] of [
+      ["Open planned batches", wineSources.planned],
+      ["Open active batches", wineSources.active],
+      ["Open production history", wineSources.history],
+    ]) {
+      expect(within(production).getByRole("link", { name: new RegExp(`^${label}`) })).toHaveAttribute("href", href);
     }
+    expect(new Set([wineSources.planned, wineSources.active, wineSources.history]).size).toBe(3);
+    expect(production).toHaveClass("wine-production");
     // Keep old bookmarks valid even though Batch History is now Production History.
     for (const id of ["batches", "archive", "recipes", "approvals", "actions", "methods", "documents", "ideas"]) {
       expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
@@ -77,9 +83,9 @@ describe("Wine Production navigation", () => {
 
   it("shows the requested release label from package metadata with a valid internal version", () => {
     render(<WinePage />);
-    expect(displayVersion).toBe("1.201");
+    expect(displayVersion).toBe("1.202");
     expect(version).toBe(`${displayVersion}.0`);
-    expect(screen.getAllByText("v1.201")).toHaveLength(3);
+    expect(screen.getAllByText("v1.202")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {
