@@ -1,6 +1,7 @@
 import {
   Archive,
   BookOpen,
+  CalendarDays,
   FlaskConical,
   FolderOpen,
   ListChecks,
@@ -21,35 +22,47 @@ export const wineSources = {
     "https://drive.google.com/drive/folders/1tyjh5dS6DLKhm1A3bweBlqqgUn0p_pJV",
 } as const;
 
-export const wineSections = [
+export const productionSections = [
+  {
+    id: "planned",
+    title: "Planned Batches",
+    description:
+      "Prepare future production. These batches have not started yet.",
+    label: "Open planned batches",
+    href: wineSources.register,
+    icon: CalendarDays,
+    tone: "amber",
+    category: "BEFORE YOU START",
+    note: "In the register, choose Planned batches. A plan is not a confirmed production start.",
+  },
   {
     id: "batches",
-    number: "01",
     title: "Active Batches",
     description:
-      "Follow physical batches in progress, with their recorded stage and next intervention.",
-    label: "Open the production register",
+      "Follow fermentation and processing already underway, from the current stage to the next intervention.",
+    label: "Open active batches",
     href: wineSources.register,
     icon: Wine,
     tone: "rose",
-    category: "BATCH REGISTER",
-    note: "Choose Active batches in Notion. Planned batches have their own view; a planned start is never a completed operation.",
+    category: "IN PRODUCTION",
+    note: "In the register, choose Active batches for the recorded stage and next action.",
   },
   {
     id: "archive",
-    number: "02",
-    title: "Batch History",
-    description: "Revisit bottled, completed and abandoned batches, including their observations and lessons.",
-    label: "Open the register for batch history",
+    title: "Production History",
+    description: "Revisit bottled, completed and historical batches, with their observations and lessons.",
+    label: "Open production history",
     href: wineSources.register,
     icon: Archive,
     tone: "lilac",
     category: "PRODUCTION HISTORY",
-    note: "Choose Batch history in Notion. Physical production stays in the same register; recipe instructions are not performed history.",
+    note: "In the register, choose Batch history. Completed and abandoned batches stay here; a recipe is not production history.",
   },
+] as const;
+
+export const libraryAndSupportSections = [
   {
     id: "recipes",
-    number: "03",
     title: "Recipe Library",
     description: "Find reusable methods, source notes and versions, linked to the batches that test them.",
     label: "Open Wine Making for the recipe library",
@@ -61,7 +74,6 @@ export const wineSections = [
   },
   {
     id: "approvals",
-    number: "04",
     title: "Approval Status",
     description: "Review Draft, Testing, Approved and Archived recipes before choosing a method to repeat.",
     label: "Open Wine Making for approval review",
@@ -73,7 +85,6 @@ export const wineSections = [
   },
   {
     id: "actions",
-    number: "05",
     title: "Production Actions",
     description:
       "Return to your tasks to review wine-related work and plan the next intervention.",
@@ -86,7 +97,6 @@ export const wineSections = [
   },
   {
     id: "methods",
-    number: "06",
     title: "Methods & Guides",
     description:
       "Consult your established batch-management workflow and production guidance.",
@@ -99,7 +109,6 @@ export const wineSections = [
   },
   {
     id: "documents",
-    number: "07",
     title: "Photos & Documents",
     description:
       "Find archived instructions, batch photographs, and supporting documents.",
@@ -112,7 +121,6 @@ export const wineSections = [
   },
   {
     id: "ideas",
-    number: "08",
     title: "Ideas & Experiments",
     description:
       "Return to your Wine Making area for related notes, references, and ideas.",
@@ -123,4 +131,10 @@ export const wineSections = [
     category: "EXPLORE",
     note: "Browse the existing area for context. Exploratory ideas are not approved production actions.",
   },
+] as const;
+
+// Keep the existing fragment IDs, including #batches and #archive, bookmarkable.
+export const wineSections = [
+  ...productionSections,
+  ...libraryAndSupportSections,
 ] as const;

@@ -12,7 +12,11 @@ Wine Production has its own source, package version, tests, GitHub Actions workf
 
 ## Navigation edition
 
-Eight sections cover active batches, batch history, the reusable Recipe Library, approval review, shared Tasks, batch-management guide, Wine Production Drive folder, and Wine Making Area notes. Active and history routes open the canonical register; choose the named view there. Recipe and approval routes open the existing approved Wine Making Area entry point, which now contains the library and linked review/approved views. Draft, Testing, Approved and Archived describe recipes; production stages continue to describe physical batches. Existing Notion and Drive permissions remain authoritative. The site does not read private data, show live batch state or approval counts, or save production changes.
+The first dashboard row separates **Planned Batches**, **Active Batches** and **Production History**. Plans have not started; active batches are undergoing fermentation/processing; history contains bottled, completed and abandoned production. All three open the existing canonical register; choose **Planned batches**, **Active batches** or **Batch history** there. No new view URLs or private record destinations are published.
+
+The second row starts with a highlighted **Recipe Library**, followed by Approval Status and Production Actions. Methods & Guides, Photos & Documents, and Ideas & Experiments remain below. On iPad portrait the recipe card spans the resource grid; on iPhone the cards stack in the same order. Sidebar navigation and the section shortcuts retain all eight original anchors, including `#batches` and `#archive`; `#planned` is the only added anchor. The old Batch History label is now Production History.
+
+Recipe and approval routes open the existing approved Wine Making Area entry point. Draft, Testing, Approved and Archived describe recipes; production stages describe physical batches. Existing Notion and Drive permissions remain authoritative. This release remains navigation-first: it does not fetch private data, show batch/approval counts, synchronize records, browse recipes, create batch-to-recipe relationships, or save production changes.
 
 The three additional entry-point URLs (wine register, guide, Drive folder) were explicitly approved for public source on 2026-10-18. Individual batch, inventory, dated task, private media, postmortem and exploratory-idea deep links are excluded. No personal production records, measurements, original photographs, credentials or unauthenticated private integrations belong in this public repository.
 
@@ -30,7 +34,9 @@ pnpm build
 pnpm preview --port 4174
 ```
 
-Open `/lifeos-wine-production/`. The app version is read from `package.json`; update it for a release. Versions evolve independently from LifeOS Home. Push `main` to test, build, and deploy only this site. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
+Open `/lifeos-wine-production/`. The requested user-facing release **v1.201** is stored as `displayVersion` in `package.json`; its package-manager-compatible SemVer is **1.201.0**. All three UI labels use that package metadata, and a test keeps the two values consistent. Versions evolve independently from LifeOS Home.
+
+For this implementation candidate, merge and deployment require Hyrad's separate approval. A push to `main` automatically tests, builds and deploys this site; do not merge or push `main` until deployment is also authorized. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
 
 For browser checks against a running production preview:
 
@@ -39,7 +45,9 @@ pnpm exec playwright install chromium
 pnpm test:browser
 ```
 
-`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to the deployed wine site. Checks cover four widths, version display, anchors and direct reload, keyboard entry, automated WCAG A/AA rules, and unexpected network requests. Screenshots go to ignored `test-results/`. Automated checks complement visual review.
+`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to a matching preview or deployed release. Candidate browser checks expect v1.201, so they should not be run against production until that version is approved and deployed. Checks cover desktop, iPad portrait/landscape and iPhone sizes; the three primary cards in order and within the desktop viewport; Recipe Library placement; all nine anchors and direct reload; keyboard use; 44 px link targets; automated WCAG A/AA rules; manifest/Apple assets; and unexpected requests. Canonical outbound links are verified with intercepted responses, without accessing private records. Screenshots go to ignored `test-results/`; `SCREENSHOT_DIR` can select a separate evidence directory. Physical Home Screen installation remains a device acceptance check.
+
+`pnpm build` includes the public artifact boundary scan (`pnpm test:boundary`). It rejects destinations outside the shipped v1.2.0 allowlist, new private identifiers/hosts, credential patterns, inline executable content, external assets and source maps. No private production or recipe fixtures belong in tests or public documentation.
 
 ## Extraction history
 
