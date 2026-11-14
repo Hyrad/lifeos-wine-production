@@ -62,7 +62,7 @@ try {
     } else {
       ok(primary[0].y < primary[1].y && primary[1].y < primary[2].y && primary[2].y < recipe.y, `${name}: stacked mobile order`);
     }
-    const small = await page.locator("a").evaluateAll(links => links.filter(link => {
+    const small = await page.locator("a, summary").evaluateAll(links => links.filter(link => {
       const rect = link.getBoundingClientRect();
       return !link.classList.contains("skip-link") && rect.width && rect.height && getComputedStyle(link).visibility !== "hidden" && rect.height < 44;
     }).map(link => ({ text: link.textContent.trim(), height: link.getBoundingClientRect().height })));
@@ -75,6 +75,17 @@ try {
     await shortcut.click();
     equal(new URL(page.url()).hash, "#supplies", `${name}: shopping shortcut`);
     const supplies = page.getByRole("region", { name: "Wine Supplies / To Buy" });
+    ok(await supplies.getByRole("note", { name: "Live refresh unavailable" }).isVisible(), `${name}: unavailable connection explained`);
+    ok(await supplies.getByText("Last successful live refresh: never.").isVisible(), `${name}: no fabricated successful refresh`);
+    const genericTasks = supplies.getByRole("link", { name: /Open shared LifeOS Tasks/, includeHidden: true });
+    ok(!(await genericTasks.isVisible()), `${name}: generic Tasks route collapsed`);
+    const help = supplies.locator("summary");
+    await help.focus();
+    await page.keyboard.press("Enter");
+    ok(await genericTasks.isVisible(), `${name}: fallback reachable by keyboard`);
+    ok(await supplies.getByText(/includes unrelated items/).isVisible(), `${name}: generic destination explained`);
+    await page.keyboard.press("Enter");
+    ok(!(await genericTasks.isVisible()), `${name}: fallback closes by keyboard`);
     equal(await supplies.locator("li").count(), 2, `${name}: only approved purchase requirements`);
     ok((await supplies.locator("li").nth(0).innerText()).includes("2 kg") && (await supplies.locator("li").nth(0).innerText()).includes("not yet allocated"), `${name}: sugar quantity and allocation`);
     ok((await supplies.locator("li").nth(1).innerText()).includes("21 L") && (await supplies.locator("li").nth(1).innerText()).includes("planned cider (not started)"), `${name}: juice quantity and batch`);
