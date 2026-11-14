@@ -16,7 +16,6 @@ describe("Wine Production navigation", () => {
       "Active Batches",
       "Production History",
       "Recipe Library",
-      "Approval Status",
       "Production Actions",
       "Methods & Guides",
       "Photos & Documents",
@@ -48,8 +47,8 @@ describe("Wine Production navigation", () => {
     ).toHaveAttribute("href", homePagePath);
     expect(screen.getByText(/other areas may also appear/)).toBeVisible();
     expect(screen.getByRole("link", { name: /Open Recipe Ledger/ })).toHaveAttribute("href", wineSources.recipeLedger);
-    expect(screen.getByRole("link", { name: /Open Wine Making for approval review/ })).toHaveAttribute("href", wineSources.area);
-    expect(screen.getByText(/A successful batch alone does not approve a recipe/)).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Approval Status" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open Wine Making for approval review/ })).not.toBeInTheDocument();
   });
 
   it("puts batch stages first, then recipes and every existing support section", () => {
@@ -60,7 +59,7 @@ describe("Wine Production navigation", () => {
     ]);
     const resources = screen.getByRole("region", { name: "Recipes & workspace" });
     expect(within(resources).getAllByRole("heading", { level: 3 }).map(h => h.textContent)).toEqual([
-      "Recipe Library", "Approval Status", "Production Actions", "Methods & Guides", "Photos & Documents", "Ideas & Experiments",
+      "Recipe Library", "Production Actions", "Methods & Guides", "Photos & Documents", "Ideas & Experiments",
     ]);
     expect(within(production).getByText(/have not started yet/)).toBeVisible();
     expect(within(production).getByText(/fermentation and processing already underway/i)).toBeVisible();
@@ -75,7 +74,7 @@ describe("Wine Production navigation", () => {
     expect(new Set([wineSources.planned, wineSources.active, wineSources.history]).size).toBe(3);
     expect(production).toHaveClass("wine-production");
     // Keep old bookmarks valid even though Batch History is now Production History.
-    for (const id of ["batches", "archive", "recipes", "approvals", "actions", "methods", "documents", "ideas"]) {
+    for (const id of ["batches", "archive", "recipes", "actions", "methods", "documents", "ideas"]) {
       expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
       expect(screen.getByRole("navigation", { name: "Main navigation" }).querySelector(`a[href="#${id}"]`)).not.toBeNull();
     }
@@ -83,9 +82,9 @@ describe("Wine Production navigation", () => {
 
   it("shows the requested release label from package metadata with a valid internal version", () => {
     render(<WinePage />);
-    expect(displayVersion).toBe("1.203");
+    expect(displayVersion).toBe("1.204");
     expect(version).toBe(`${displayVersion}.0`);
-    expect(screen.getAllByText("v1.203")).toHaveLength(3);
+    expect(screen.getAllByText("v1.204")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {
