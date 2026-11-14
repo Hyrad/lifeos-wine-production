@@ -10,11 +10,17 @@ Wine Production has its own source, package version, tests, GitHub Actions workf
 
 **Durable website checkpoint:** use an authorized Life Command Center connection to find the Notes & Memory record titled **Wine Production website — implementation and release checkpoint**. Its private URL is kept out of public source.
 
+## Wine Supplies / To Buy — v1.205
+
+`#supplies` is available from the welcome shortcut, sidebar and section links. The mobile-friendly read-only snapshot shows only the owner-approved purchase requirements: 2 kg extra white sugar (batch allocation unconfirmed; not a recipe dose) and 21 L apple juice for planned cider (not started). Last checked: 14 November 2026. This is a manually curated release snapshot, not live data or an independent purchase ledger.
+
+The existing LifeOS weekly grocery checklist remains authoritative. Open the already-published Tasks entry point, then find “[Groceries] Weekly shopping list” to verify current quantities and record purchases. The private task and batch URLs are excluded. No purchase controls, browser storage, private API calls or credentials are introduced. To refresh the public snapshot, verify the live checklist, retain only explicitly approved public requirements, update the last-checked date and release version, then test and publish.
+
 ## Navigation edition
 
 The first dashboard row separates **Planned Batches**, **Active Batches** and **Production History**. Plans have not started; active batches are undergoing fermentation/processing; history contains bottled, completed and abandoned production. All three open the existing canonical register; choose **Planned batches**, **Active batches** or **Batch history** there. No new view URLs or private record destinations are published.
 
-The **Recipes & workspace** group starts with **Recipe Library**, followed by Production Actions, Methods & Guides, Photos & Documents, and Ideas & Experiments. The redundant Approval Status card and shortcut were removed in the v1.204 candidate; recipe approval and verification remain recorded inside Notion. On iPad portrait the recipe card spans the resource grid; on iPhone the cards stack in the same order. The remaining eight card anchors stay bookmarkable, including `#batches`, `#archive`, and `#recipes`; the retired `#approvals` shortcut no longer appears. The old Batch History label is now Production History.
+The **Recipes & workspace** group starts with **Recipe Library**, followed by Production Actions, Methods & Guides, Photos & Documents, and Ideas & Experiments. The redundant Approval Status card and shortcut were removed in v1.204; recipe approval and verification remain recorded inside Notion. On iPad portrait the recipe card spans the resource grid; on iPhone the cards stack in the same order. The remaining eight card anchors stay bookmarkable, including `#batches`, `#archive`, and `#recipes`; the retired `#approvals` shortcut no longer appears. The old Batch History label is now Production History.
 
 Recipe Library opens the existing dedicated Notion Recipe Ledger directly. Other support cards retain their established Wine Making, task, guide, and Drive destinations. Draft, Testing, Approved and Archived describe recipes; production stages describe physical batches. Existing Notion and Drive permissions remain authoritative. This release remains navigation-first: it does not fetch private data, show batch/approval counts, synchronize records, browse recipes, create batch-to-recipe relationships, or save production changes.
 
@@ -34,9 +40,9 @@ pnpm build
 pnpm preview --port 4174
 ```
 
-Open `/lifeos-wine-production/`. The candidate user-facing release **v1.204** is stored as `displayVersion` in `package.json`; its package-manager-compatible SemVer is **1.204.0**. All three UI labels use that package metadata, and a test keeps the two values consistent. Versions evolve independently from LifeOS Home.
+Open `/lifeos-wine-production/`. The user-facing release **v1.205** is stored as `displayVersion` in `package.json`; its package-manager-compatible SemVer is **1.205.0**. All three UI labels use that package metadata, and a test keeps the two values consistent. Versions evolve independently from LifeOS Home.
 
-For this implementation candidate, merge and deployment require Hyrad's separate approval. A push to `main` automatically tests, builds and deploys this site; do not merge or push `main` until deployment is also authorized. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
+WINE-SUPPLIES-01 explicitly authorizes this scoped change, merge, and publication. Future releases require owner authorization. A push to `main` automatically tests, builds and deploys this site; do not merge or push `main` until deployment is also authorized. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
 
 For browser checks against a running production preview:
 
@@ -45,7 +51,7 @@ pnpm exec playwright install chromium
 pnpm test:browser
 ```
 
-`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to a matching preview or deployed release. Candidate browser checks expect v1.204, so they should not be run against production until that version is approved and deployed. Checks cover desktop, iPad portrait/landscape and iPhone sizes; the three primary cards in order and within the desktop viewport; Recipe Library placement; all eight remaining card anchors and direct reload; keyboard use; 44 px link targets; automated WCAG A/AA rules; manifest/Apple assets; and unexpected requests. Canonical outbound links are verified with intercepted responses, without accessing private records. Screenshots go to ignored `test-results/`; `SCREENSHOT_DIR` can select a separate evidence directory. Physical Home Screen installation remains a device acceptance check.
+`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to a matching preview or deployed release. Browser checks expect v1.205, so they should not be run against production until that version is approved and deployed. Checks cover desktop, iPad portrait/landscape and iPhone sizes; the three primary cards in order and within the desktop viewport; Recipe Library placement; all eight remaining card anchors plus the supplies anchor and direct reload; keyboard use; 44 px link targets; automated WCAG A/AA rules; manifest/Apple assets; and unexpected requests. Canonical outbound links are verified with intercepted responses, without accessing private records. Screenshots go to ignored `test-results/`; `SCREENSHOT_DIR` can select a separate evidence directory. Physical Home Screen installation remains a device acceptance check.
 
 `pnpm build` includes the public artifact boundary scan (`pnpm test:boundary`). It rejects destinations outside the shipped v1.2.0 allowlist, new private identifiers/hosts, credential patterns, inline executable content, external assets and source maps. No private production or recipe fixtures belong in tests or public documentation.
 

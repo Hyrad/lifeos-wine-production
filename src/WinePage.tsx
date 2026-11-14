@@ -19,9 +19,11 @@ import {
   homePagePath,
   libraryAndSupportSections,
   productionSections,
+  wineNavigation,
   wineSections,
   wineSources,
 } from "./data/wine";
+import WineSupplies from "./components/WineSupplies";
 
 function WineCard({ section, primary = false }: {
   section: typeof wineSections[number];
@@ -74,8 +76,11 @@ export default function WinePage() {
                 Plan a batch. Follow its progress. Learn from what you make.
               </p>
               <p className="home-identity">
-                Navigation only · Your current records stay in Notion.
+                Shopping snapshot · Live records stay in Notion.
               </p>
+              <a className="text-link wine-supplies-shortcut" href="#supplies">
+                Wine Supplies / To Buy <ArrowRight size={14} aria-hidden="true" />
+              </a>
             </div>
             <div className="wine-emblem" aria-hidden="true">
               <div className="wine-ring" />
@@ -115,8 +120,10 @@ export default function WinePage() {
             </div>
           </section>
 
+          <WineSupplies />
+
           <nav className="wine-jump-links" aria-label="Wine page sections">
-            {wineSections.map((section) => (
+            {wineNavigation.map((section) => (
               <a href={`#${section.id}`} key={section.id}>
                 {section.title}
                 <ArrowRight size={12} aria-hidden="true" />
@@ -161,8 +168,8 @@ export default function WinePage() {
             <div className="wine-boundary">
               <LockKeyhole size={14} aria-hidden="true" />
               <p>
-                This page provides navigation. It doesn’t display live batch
-                status, measurements, tasks, or stock counts. Notion and Drive
+                This page provides navigation and an approved shopping snapshot.
+                It doesn’t display live batch status, measurements, tasks, or stock counts. Notion and Drive
                 keep their existing access controls.
               </p>
             </div>

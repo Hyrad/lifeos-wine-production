@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Compass } from "lucide-react";
 import { displayVersion as version } from "../../package.json";
 import { sources } from "../data/navigation";
-import { homePagePath, wineSections } from "../data/wine";
+import { homePagePath, wineNavigation } from "../data/wine";
 
 export function External({
   href,
@@ -82,7 +82,7 @@ export function Sidebar() {
       </a>
       <div className="nav-label">WORKSPACE</div>
       <nav aria-label="Main navigation">
-        {wineSections.map(({ id, title, icon: Icon }) => (
+        {wineNavigation.map(({ id, title, icon: Icon }) => (
           <a href={`#${id}`} className="nav-item" key={id}>
             <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
             {title}
@@ -127,7 +127,7 @@ export function Topbar() {
       <div className="release-info">
         <span className="mode-badge">
           <span />
-          Navigation edition
+          Navigation & snapshot
         </span>
         <span className="release-version" title="App version">
           v{version}
