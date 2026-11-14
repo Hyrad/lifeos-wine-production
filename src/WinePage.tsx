@@ -106,7 +106,7 @@ export default function WinePage() {
             <SectionHeading
               id="wine-resources-title"
               title="Recipes & workspace"
-              subtitle="Choose a method, review its approval, and find the tools to keep moving."
+              subtitle="Choose a recipe and find the tools to keep moving."
             />
             <div className="wine-grid wine-resources-grid">
               {libraryAndSupportSections.map((section) => (
