@@ -21,6 +21,33 @@
   font-size: 12px;
   line-height: 1.7;
 }
+.wine-refresh-unavailable {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #766344;
+  border-radius: 8px;
+  background: #181d21;
+}
+.wine-refresh-unavailable h3 {
+  color: #f2dfba;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.wine-refresh-unavailable p {
+  color: #b6bfc3;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.wine-refresh-unavailable p + p { margin-top: 8px; }
+.wine-checklist-help { margin-top: 10px; }
+.wine-checklist-help summary {
+  min-height: 44px;
+  padding: 12px 0;
+  color: #e4c3b7;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.6;
+}
 .wine-supply-list {
   list-style: none;
   padding: 0;

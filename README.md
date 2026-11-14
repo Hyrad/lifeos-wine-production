@@ -10,7 +10,13 @@ Wine Production has its own source, package version, tests, GitHub Actions workf
 
 **Durable website checkpoint:** use an authorized Life Command Center connection to find the Notes & Memory record titled **Wine Production website — implementation and release checkpoint**. Its private URL is kept out of public source.
 
-## Wine Supplies / To Buy — v1.205
+## WINE-SUPPLIES-02 — blocked live integration; draft v1.206
+
+Production remains v1.205 at `5febad43eee4ccb7a3913baa39bedcc4a19a0235`. This candidate is not approved for merge or deployment while the live-integration security gates remain open. It adds an explicit unavailable/older-snapshot notice and demotes the generic Tasks link behind “Manage purchases in Notion”, with an explanation that the destination contains unrelated items. It introduces no refresh button, API client, credential, private identifier or duplicate checklist.
+
+The security preflight did not establish a deployed owner-authenticated Notion reader or an approved isolated browser origin. A connected agent can inspect Notion; that access is not available to the website. No server, credential, sharing, identity or routing change is part of this draft. Detailed private preflight evidence is recorded only in the existing implementation Task and release checkpoint. See [the live integration gates](docs/live-shopping-gates.md) for remaining acceptance.
+
+## Wine Supplies / To Buy — published v1.205 snapshot
 
 `#supplies` is available from the welcome shortcut, sidebar and section links. The mobile-friendly read-only snapshot shows only the owner-approved purchase requirements: 2 kg extra white sugar (batch allocation unconfirmed; not a recipe dose) and 21 L apple juice for planned cider (not started). Last checked: 14 November 2026. This is a manually curated release snapshot, not live data or an independent purchase ledger.
 
@@ -40,9 +46,9 @@ pnpm build
 pnpm preview --port 4174
 ```
 
-Open `/lifeos-wine-production/`. The user-facing release **v1.205** is stored as `displayVersion` in `package.json`; its package-manager-compatible SemVer is **1.205.0**. All three UI labels use that package metadata, and a test keeps the two values consistent. Versions evolve independently from LifeOS Home.
+Open `/lifeos-wine-production/`. The unpublished candidate **v1.206** is stored as `displayVersion` in `package.json`; its package-manager-compatible SemVer is **1.206.0**. All three UI labels use that package metadata, and a test keeps the two values consistent. Versions evolve independently from LifeOS Home.
 
-WINE-SUPPLIES-01 explicitly authorizes this scoped change, merge, and publication. Future releases require owner authorization. A push to `main` automatically tests, builds and deploys this site; do not merge or push `main` until deployment is also authorized. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
+WINE-SUPPLIES-02 requires verified live integration and security acceptance before release. The current draft must remain unmerged; production stays v1.205. A push to `main` automatically tests, builds and deploys this site; do not merge or push `main` until deployment is also authorized. Pull requests test/build without deployment. No repository secret is required; the workflow uses the generated GitHub token.
 
 For browser checks against a running production preview:
 
@@ -51,7 +57,7 @@ pnpm exec playwright install chromium
 pnpm test:browser
 ```
 
-`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to a matching preview or deployed release. Browser checks expect v1.205, so they should not be run against production until that version is approved and deployed. Checks cover desktop, iPad portrait/landscape and iPhone sizes; the three primary cards in order and within the desktop viewport; Recipe Library placement; all eight remaining card anchors plus the supplies anchor and direct reload; keyboard use; 44 px link targets; automated WCAG A/AA rules; manifest/Apple assets; and unexpected requests. Canonical outbound links are verified with intercepted responses, without accessing private records. Screenshots go to ignored `test-results/`; `SCREENSHOT_DIR` can select a separate evidence directory. Physical Home Screen installation remains a device acceptance check.
+`BROWSER_CHANNEL=chrome` uses an installed Chrome. `CHECK_URL` can point to a matching preview or deployed release. Candidate browser checks expect v1.206, so they should not be run against production until that version is approved and deployed. Checks cover desktop, iPad portrait/landscape and iPhone sizes; the three primary cards in order and within the desktop viewport; Recipe Library placement; all eight remaining card anchors plus the supplies anchor and direct reload; keyboard use; 44 px link targets; automated WCAG A/AA rules; manifest/Apple assets; and unexpected requests. Canonical outbound links are verified with intercepted responses, without accessing private records. Screenshots go to ignored `test-results/`; `SCREENSHOT_DIR` can select a separate evidence directory. Physical Home Screen installation remains a device acceptance check.
 
 `pnpm build` includes the public artifact boundary scan (`pnpm test:boundary`). It rejects destinations outside the shipped v1.2.0 allowlist, new private identifiers/hosts, credential patterns, inline executable content, external assets and source maps. No private production or recipe fixtures belong in tests or public documentation.
 

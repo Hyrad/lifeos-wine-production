@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import WinePage from "./WinePage";
 import { homePagePath, wineSources } from "./data/wine";
@@ -82,9 +83,9 @@ describe("Wine Production navigation", () => {
 
   it("shows the requested release label from package metadata with a valid internal version", () => {
     render(<WinePage />);
-    expect(displayVersion).toBe("1.205");
+    expect(displayVersion).toBe("1.206");
     expect(version).toBe(`${displayVersion}.0`);
-    expect(screen.getAllByText("v1.205")).toHaveLength(3);
+    expect(screen.getAllByText("v1.206")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {
@@ -113,11 +114,30 @@ describe("Wine Production navigation", () => {
     expect(within(supplies).getByText(/Read-only snapshot/)).toHaveTextContent("Not live");
     expect(within(supplies).getByText("14 November 2026")).toHaveAttribute("dateTime", "2026-11-14");
     expect(within(supplies).getByText(/Source of truth: LifeOS weekly grocery checklist/)).toBeVisible();
-    expect(within(supplies).getByRole("link", { name: /Open LifeOS Tasks for the live checklist/ })).toHaveAttribute("href", sources.tasks);
+    expect(within(supplies).getByRole("link", { name: /Open shared LifeOS Tasks/, hidden: true })).toHaveAttribute("href", sources.tasks);
     expect(within(supplies).queryByRole("checkbox")).not.toBeInTheDocument();
     expect(within(supplies).queryByRole("button")).not.toBeInTheDocument();
     for (const navName of ["Main navigation", "Wine page sections"]) {
       expect(within(screen.getByRole("navigation", { name: navName })).getByRole("link", { name: "Wine Supplies / To Buy" })).toHaveAttribute("href", "#supplies");
     }
+  });
+
+  it("makes the missing live connection explicit and keeps the generic Tasks route behind deliberate help", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    render(<WinePage />);
+    const supplies = screen.getByRole("region", { name: "Wine Supplies / To Buy" });
+    expect(within(supplies).getByRole("note", { name: "Live refresh unavailable" })).toHaveTextContent("may omit recent additions or include items already purchased");
+    expect(within(supplies).getByText("Last successful live refresh: never.")).toBeVisible();
+    expect(within(supplies).getByRole("list")).toHaveAccessibleName("Purchases recorded in the older snapshot");
+    const link = within(supplies).getByRole("link", { name: /Open shared LifeOS Tasks/, hidden: true });
+    expect(link).not.toBeVisible();
+    expect(within(supplies).queryByRole("button", { name: /Refresh from LifeOS/ })).not.toBeInTheDocument();
+    await user.click(within(supplies).getByText("Manage purchases in Notion"));
+    expect(link).toBeVisible();
+    expect(within(supplies).getByText(/includes unrelated items/)).toBeVisible();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
