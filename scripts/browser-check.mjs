@@ -8,7 +8,7 @@ const { displayVersion, version } = JSON.parse(await readFile(new URL("../packag
 const shots = process.env.SCREENSHOT_DIR || "test-results";
 const sections = [
   ["planned", "Planned Batches"], ["batches", "Active Batches"], ["archive", "Production History"],
-  ["recipes", "Recipe Library"], ["approvals", "Approval Status"], ["actions", "Production Actions"],
+  ["recipes", "Recipe Library"], ["actions", "Production Actions"],
   ["methods", "Methods & Guides"], ["documents", "Photos & Documents"], ["ideas", "Ideas & Experiments"],
 ];
 const viewports = [
@@ -49,9 +49,9 @@ try {
       ok(primary[0].x < primary[1].x && primary[1].x < primary[2].x, `${name}: primary left-to-right order`);
       if (width > 980) {
         ok(primary.every(box => box.y + box.height <= height), `${name}: full primary cards immediately visible`);
-        const approval = await page.locator("#approvals").boundingBox();
         const actions = await page.locator("#actions").boundingBox();
-        ok(recipe.y > primary[0].y + primary[0].height && Math.abs(recipe.y - approval.y) < 1 && Math.abs(recipe.y - actions.y) < 1, `${name}: Recipe Library leads row two`);
+        const methods = await page.locator("#methods").boundingBox();
+        ok(recipe.y > primary[0].y + primary[0].height && Math.abs(recipe.y - actions.y) < 1 && Math.abs(recipe.y - methods.y) < 1, `${name}: Recipe Library leads row two`);
         const frame = await page.locator(".wine-production").boundingBox();
         ok(Math.abs(recipe.x - frame.x) < 1, `${name}: Recipe Library aligns with Production frame`);
       } else {
@@ -114,7 +114,7 @@ try {
   const page = await context.newPage();
   await page.goto(new URL("index.html", url).href);
   await page.getByRole("heading", { level: 1, name: "Wine Production." }).waitFor();
-  equal(await page.locator(".wine-card").count(), 9, "direct index URL");
+  equal(await page.locator(".wine-card").count(), 8, "direct index URL");
   await page.goto(url);
   await page.getByRole("heading", { level: 1, name: "Wine Production." }).waitFor();
   await page.keyboard.press("Tab");
