@@ -11,6 +11,7 @@ const sections = [
   ["recipes", "Recipe Library"], ["actions", "Production Actions"],
   ["methods", "Methods & Guides"], ["documents", "Photos & Documents"], ["ideas", "Ideas & Experiments"],
 ];
+const navigation = [...sections, ["supplies", "Wine Supplies / To Buy"]];
 const viewports = [
   ["desktop", 1440, 900], ["desktop-compact", 1280, 800],
   ["ipad-landscape", 1180, 820], ["ipad-portrait", 820, 1180], ["ipad-mini", 744, 1133],
@@ -67,7 +68,22 @@ try {
     }).map(link => ({ text: link.textContent.trim(), height: link.getBoundingClientRect().height })));
     equal(small, [], `${name}: 44px link targets`);
     equal(await page.getByRole("link", { name: "Back to LifeOS Home" }).getAttribute("href"), "https://hyrad.github.io/lifeos-home/", `${name}: Home return`);
-    ok(await page.getByText("Navigation only · Your current records stay in Notion.", { exact: true }).isVisible(), `${name}: no-live-data label`);
+    ok(await page.getByText("Shopping snapshot · Live records stay in Notion.", { exact: true }).isVisible(), `${name}: no-live-data label`);
+    const shortcut = page.locator(".wine-supplies-shortcut");
+    const shortcutBox = await shortcut.boundingBox();
+    ok(shortcutBox.y >= 0 && shortcutBox.y + shortcutBox.height <= height, `${name}: shopping shortcut visible on arrival`);
+    await shortcut.click();
+    equal(new URL(page.url()).hash, "#supplies", `${name}: shopping shortcut`);
+    const supplies = page.getByRole("region", { name: "Wine Supplies / To Buy" });
+    equal(await supplies.locator("li").count(), 2, `${name}: only approved purchase requirements`);
+    ok((await supplies.locator("li").nth(0).innerText()).includes("2 kg") && (await supplies.locator("li").nth(0).innerText()).includes("not yet allocated"), `${name}: sugar quantity and allocation`);
+    ok((await supplies.locator("li").nth(1).innerText()).includes("21 L") && (await supplies.locator("li").nth(1).innerText()).includes("planned cider (not started)"), `${name}: juice quantity and batch`);
+    equal(await supplies.locator("time").getAttribute("datetime"), "2026-11-14", `${name}: snapshot date`);
+    ok((await supplies.innerText()).includes("Not live") && (await supplies.innerText()).includes("Source of truth: LifeOS weekly grocery checklist"), `${name}: snapshot and source labels`);
+    equal(await supplies.locator("input, button").count(), 0, `${name}: no duplicate purchase controls`);
+    for (const box of await supplies.locator("li").evaluateAll(items => items.map(item => { const r = item.getBoundingClientRect(); return { x: r.x, right: r.right }; }))) {
+      ok(box.x >= 0 && box.right <= width, `${name}: supply items fit viewport`);
+    }
     const manifestHref = await page.locator('link[rel="manifest"]').getAttribute("href");
     const manifestURL = new URL(manifestHref, url).href;
     const manifest = await (await page.request.get(manifestURL)).json();
@@ -90,18 +106,18 @@ try {
     evidence.push({ name, width, height, primary, recipe });
     // Verify every destination is reachable from both retained navigation sets.
     for (const navName of ["Main navigation", "Wine page sections"]) {
-      for (const [id, title] of sections) {
+      for (const [id, title] of navigation) {
         await page.getByRole("navigation", { name: navName }).getByRole("link", { name: title, exact: true }).click();
         equal(new URL(page.url()).hash, `#${id}`, `${name}: ${navName} ${id}`);
-        const heading = await page.locator(`#${id} h3`).boundingBox();
+        const heading = await page.locator(`#${id} ${id === "supplies" ? "h2" : "h3"}`).boundingBox();
         ok(heading.y >= 0 && heading.y < height, `${name}: ${id} heading reachable`);
       }
     }
-    for (const [id] of sections) {
+    for (const [id] of navigation) {
       await page.goto(new URL(`#${id}`, url).href);
       await page.reload({ waitUntil: "networkidle" });
       equal(new URL(page.url()).hash, `#${id}`, `${name}: direct anchor reload ${id}`);
-      await page.locator(`#${id} h3`).waitFor();
+      await page.locator(`#${id} ${id === "supplies" ? "h2" : "h3"}`).waitFor();
     }
     equal(await page.evaluate(() => [localStorage.length, sessionStorage.length]), [0, 0], `${name}: no browser records`);
     ok(await page.evaluate(() => navigator.serviceWorker?.controller == null), `${name}: no service worker claim`);

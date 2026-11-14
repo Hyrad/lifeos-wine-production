@@ -5,6 +5,7 @@ import {
   FlaskConical,
   FolderOpen,
   ListChecks,
+  ShoppingBasket,
   Wine,
 } from "lucide-react";
 import { notion, sources } from "./navigation";
@@ -131,5 +132,17 @@ export const libraryAndSupportSections = [
 // Keep the existing fragment IDs, including #batches and #archive, bookmarkable.
 export const wineSections = [
   ...productionSections,
+  ...libraryAndSupportSections,
+] as const;
+
+export const suppliesNavigation = {
+  id: "supplies",
+  title: "Wine Supplies / To Buy",
+  icon: ShoppingBasket,
+} as const;
+
+export const wineNavigation = [
+  ...productionSections,
+  suppliesNavigation,
   ...libraryAndSupportSections,
 ] as const;

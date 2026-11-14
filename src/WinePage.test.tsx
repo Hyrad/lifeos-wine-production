@@ -82,9 +82,9 @@ describe("Wine Production navigation", () => {
 
   it("shows the requested release label from package metadata with a valid internal version", () => {
     render(<WinePage />);
-    expect(displayVersion).toBe("1.204");
+    expect(displayVersion).toBe("1.205");
     expect(version).toBe(`${displayVersion}.0`);
-    expect(screen.getAllByText("v1.204")).toHaveLength(3);
+    expect(screen.getAllByText("v1.205")).toHaveLength(3);
   });
 
   it("keeps private content out and does not fetch live records", () => {
@@ -96,5 +96,28 @@ describe("Wine Production navigation", () => {
     expect(storageSpy).not.toHaveBeenCalled();
     expect(screen.getByText(/doesn’t display live batch status/)).toBeVisible();
     vi.unstubAllGlobals();
+  });
+
+  it("shows approved quantities and honest batch allocation in a dated, read-only shopping snapshot", () => {
+    render(<WinePage />);
+    const supplies = screen.getByRole("region", { name: "Wine Supplies / To Buy" });
+    const items = within(supplies).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("Extra white sugar");
+    expect(items[0]).toHaveTextContent("2 kg");
+    expect(items[0]).toHaveTextContent("Batch: not yet allocated.");
+    expect(items[0]).toHaveTextContent("not a recipe dose");
+    expect(items[1]).toHaveTextContent("Apple juice");
+    expect(items[1]).toHaveTextContent("21 L");
+    expect(items[1]).toHaveTextContent("Batch: planned cider (not started).");
+    expect(within(supplies).getByText(/Read-only snapshot/)).toHaveTextContent("Not live");
+    expect(within(supplies).getByText("14 November 2026")).toHaveAttribute("dateTime", "2026-11-14");
+    expect(within(supplies).getByText(/Source of truth: LifeOS weekly grocery checklist/)).toBeVisible();
+    expect(within(supplies).getByRole("link", { name: /Open LifeOS Tasks for the live checklist/ })).toHaveAttribute("href", sources.tasks);
+    expect(within(supplies).queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(within(supplies).queryByRole("button")).not.toBeInTheDocument();
+    for (const navName of ["Main navigation", "Wine page sections"]) {
+      expect(within(screen.getByRole("navigation", { name: navName })).getByRole("link", { name: "Wine Supplies / To Buy" })).toHaveAttribute("href", "#supplies");
+    }
   });
 });

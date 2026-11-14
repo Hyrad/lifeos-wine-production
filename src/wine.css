@@ -1,6 +1,82 @@
 .wine-page main {
   padding-top: 24px;
 }
+.wine-supplies-shortcut {
+  min-height: 44px;
+  color: #e4c3b7;
+  font-size: 13px;
+}
+.wine-supplies {
+  padding: 22px;
+  border: 1px solid #766344;
+  border-radius: 12px;
+  background: #201f1b;
+}
+.wine-supplies:target {
+  outline: 2px solid #e4c3b7;
+  outline-offset: 4px;
+}
+.wine-snapshot-label {
+  color: #e8d0a7;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.wine-supply-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.wine-supply-list li {
+  padding: 18px;
+  border: 1px solid #454238;
+  border-radius: 8px;
+  background: #181d21;
+  min-width: 0;
+}
+.wine-supply-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.wine-supply-item h3 {
+  font-size: 18px;
+  font-weight: 550;
+}
+.wine-supply-quantity {
+  color: #f2dfba;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.wine-supply-list p, .wine-supplies-source p {
+  color: #b6bfc3;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.wine-supply-list .wine-supply-note {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.wine-supplies-source {
+  border-top: 1px solid #454238;
+  padding-top: 16px;
+}
+.wine-supplies-source a {
+  min-height: 44px;
+  color: #e4c3b7;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 6px 0;
+}
+@media (max-width: 700px) {
+  .wine-supply-list { grid-template-columns: 1fr; }
+  .wine-supplies { padding: 18px; }
+}
 .wine-back {
   min-height: 44px;
   margin-bottom: 4px;
@@ -12,7 +88,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 8px 0 26px;
+  padding: 8px 0 20px;
 }
 .wine-welcome .eyebrow {
   color: #cfada6;
