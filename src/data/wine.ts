@@ -79,17 +79,6 @@ export const libraryAndSupportSections = [
     note: "Opens the dedicated Recipe Ledger in Notion directly. Recipes remain separate from physical production batches.",
   },
   {
-    id: "approvals",
-    title: "Approval Status",
-    description: "Review Draft, Testing, Approved and Archived recipes before choosing a method to repeat.",
-    label: "Open Wine Making for approval review",
-    href: wineSources.area,
-    icon: ListChecks,
-    tone: "mint",
-    category: "VERIFICATION & REUSE",
-    note: "Use Recipe Library — review and Approved recipes in Notion. Verify quantities, method and trial outcome, then record explicit producer approval. A successful batch alone does not approve a recipe.",
-  },
-  {
     id: "actions",
     title: "Production Actions",
     description:
