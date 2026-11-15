@@ -15,7 +15,15 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "paths": {
+      "#wine-supplies": [
+        "./src/components/WineSupplies.tsx"
+      ],
+      "#wine-edition": [
+        "./src/data/edition.public.ts"
+      ]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }

@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "node scripts/browser-check.mjs",
-    "test:boundary": "node scripts/check-public-boundary.mjs"
+    "test:boundary": "node scripts/check-public-boundary.mjs",
+    "build:private": "tsc -b && vite build --mode private && node scripts/check-private-boundary.mjs",
+    "test:private-api": "python3 -m unittest discover -s private/tests -v"
   },
   "dependencies": {
     "lucide-react": "^1.59.0",
@@ -35,5 +37,6 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
-  }
+  },
+  "privateDisplayVersion": "1.207-private.1"
 }
