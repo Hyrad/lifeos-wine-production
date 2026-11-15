@@ -28,7 +28,7 @@ def headers(**updates):
     return h
 
 def whois(address):
-    return {'UserProfile': {'LoginName': 'owner@example.test'}, 'Node': {'StableID': 'nDeviceOne', 'MachineAuthorized': True, 'KeyExpiry': FUTURE, 'Addresses': [address + '/32'], 'Tags': []}}
+    return {'UserProfile': {'LoginName': 'owner@example.test', 'ID': 123}, 'Node': {'StableID': 'nDeviceOne', 'User': 123, 'MachineAuthorized': True, 'KeyExpiry': FUTURE, 'Addresses': [address + ('/128' if ':' in address else '/32')], 'Tags': []}}
 
 def rt(text):
     return [{'type': 'text', 'text': {'content': text}, 'plain_text': text}]
@@ -80,6 +80,44 @@ class IdentityTests(unittest.TestCase):
         for change in [{'Origin': 'https://foreign.example'}, {'Sec-Fetch-Site': 'same-site'}, {'X-LifeOS-Client': None}, {'X-Forwarded-Proto': 'http'}, {'X-Forwarded-Host': 'other.ts.net:10000'}, {'Host': 'attacker.test'}, {'X-Forwarded-For': '100.64.0.1, 100.64.0.2'}, {'Tailscale-Funnel-Request': 'true'}]:
             with self.subTest(change=change): self.check_denied(headers(**change))
         h=headers();h['Tailscale-User-Login']='owner@example.test';self.check_denied(h)
+
+    def test_machine_authorization_requires_explicit_boolean_true(self):
+        for value in [None, False, 'false', 'true', 1, 0, {}, []]:
+            def lookup(a):
+                d = whois(a); d['Node']['MachineAuthorized'] = value; return d
+            with self.subTest(value=value): self.check_denied(lookup=lookup)
+        def omitted(a):
+            d = whois(a); del d['Node']['MachineAuthorized']; return d
+        self.check_denied(lookup=omitted)
+
+    def test_numeric_owner_identity_must_be_present_and_match(self):
+        for part, key, value in [('Node', 'User', 456), ('Node', 'User', '123'), ('Node', 'User', True), ('Node', 'User', 0), ('UserProfile', 'ID', None), ('UserProfile', 'ID', '123')]:
+            def lookup(a):
+                d = whois(a); d[part][key] = value; return d
+            with self.subTest(part=part, value=value): self.check_denied(lookup=lookup)
+        for part, key in [('Node', 'User'), ('UserProfile', 'ID'), ('Node', 'StableID'), ('Node', 'KeyExpiry')]:
+            def omitted(a):
+                d = whois(a); del d[part][key]; return d
+            with self.subTest(part=part, key=key): self.check_denied(lookup=omitted)
+
+    def test_source_requires_exact_node_host_address(self):
+        for addresses in [[], ['100.64.0.2/32'], ['100.64.0.0/24'], ['100.64.0.1/24'], ['not-an-address'], None]:
+            def lookup(a):
+                d = whois(a); d['Node']['Addresses'] = addresses; return d
+            with self.subTest(addresses=addresses): self.check_denied(lookup=lookup)
+        h = headers(**{'X-Forwarded-For': 'fd7a:115c:a1e0::1'})
+        self.assertEqual(w.authorize(h, 0, POLICY, 'GET', w.API_PATH, whois), 'nDeviceOne')
+
+    def test_missing_malformed_or_duplicate_forwarding(self):
+        for name in ['Host', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Forwarded-For']:
+            with self.subTest(missing=name): self.check_denied(headers(**{name: None}))
+            h = headers(); h[name] = h[name]; self.check_denied(h)
+        for value in ['100.64.0.1:80', 'unknown', '100.64.0.1, 100.64.0.2', ' 100.64.0.1', '[fd7a:115c:a1e0::1]']:
+            with self.subTest(value=value): self.check_denied(headers(**{'X-Forwarded-For': value}))
+
+    def test_nonroot_serve_peer_still_denied(self):
+        # A shared low-privilege UID alone does not identify tailscaled.
+        self.check_denied(uid=65534)
 
     def test_expired_policy_and_write_method(self):
         p=copy.deepcopy(POLICY);p['authorization_expires_at']='2020-01-01T00:00:00Z';self.check_denied(policy=p)

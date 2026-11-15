@@ -75,3 +75,30 @@ Wine unit. Preserve the staged candidate and evidence. For later releases restor
 the previous Wine symlink and restart only Wine. Exact commands, selected origin,
 private policy and backup hashes belong in the private Task. No script here is
 permission to change unrelated routes or services.
+
+## Compatibility gate and defensive correction
+
+Private v1.207-private.2 tightens identity validation: machine authorization must
+be the Boolean `true`, the positive numeric Node.User must equal UserProfile.ID,
+and the forwarded source must equal a node host prefix (/32 or /128), rather than
+merely belong to a reported subnet. Missing, malformed or mismatched evidence is
+denied. This does not resolve the peer-machine authorization compatibility gate.
+
+Tailscale v1.104.5 declares Node.MachineAuthorized with JSON `omitempty`; omission
+cannot distinguish false from unavailable peer evidence. Its LocalAPI WhoIs
+returns a node/profile lookup, rather than a separate machine-approval assertion.
+Neither network-map membership nor online status is a replacement. See the
+[matching type](https://github.com/tailscale/tailscale/blob/v1.104.5/tailcfg/tailcfg.go),
+[WhoIs implementation](https://github.com/tailscale/tailscale/blob/v1.104.5/ipn/localapi/localapi.go),
+[device approval documentation](https://tailscale.com/kb/1099/device-approval) and
+[Serve identity documentation](https://tailscale.com/kb/1312/serve).
+
+Keep the protected socket's proxy identity check. A low-privilege UID or process
+name alone does not authenticate tailscaled. If the actual ingress peer differs
+from the reviewed root-peer contract, stop before activation until a secure,
+host-verified daemon identity check is implemented and tested. Do not accept an
+arbitrary root or shared low-privilege process as a compatibility fallback.
+Actual host evidence, source/build discrepancies, device results and private
+operational values belong only in the authorized release records. No omitted-field
+fallback is enabled in this candidate; activation and live browser refresh remain
+separate gates.

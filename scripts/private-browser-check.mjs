@@ -1,9 +1,10 @@
 // Synthetic API/browser acceptance only. Never claim this is real Notion acceptance.
 import assert from 'node:assert/strict';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 const url=process.env.CHECK_URL || 'http://127.0.0.1:4178/lifeos-wine-production/';
+const {privateDisplayVersion}=JSON.parse(await readFile('package.json','utf8'));
 const views=[['desktop',1440,900],['compact',1280,800],['ipad-landscape',1180,820],['ipad-portrait',820,1180],['ipad-mini',744,1133],['iphone',390,844],['small-phone',320,720]];
 const sections=[['planned','Planned Batches'],['batches','Active Batches'],['archive','Production History'],['recipes','Recipe Library'],['actions','Production Actions'],['methods','Methods & Guides'],['documents','Photos & Documents'],['ideas','Ideas & Experiments'],['supplies','Wine Supplies / To Buy']];
 const synthetic={name:'Synthetic nutrient',quantity:'4',unit:'g',purpose:'for a synthetic trial',classification:'confirmed',condition:''};
@@ -23,7 +24,7 @@ for(const [name,width,height] of views){
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data),headers:{'Cache-Control':'no-store, private'}});
  });
  eq((await page.goto(url,{waitUntil:'networkidle'})).status(),200,`${name}: served private build`);
- eq(await page.locator('.release-version').textContent(),'v1.207-private.1',`${name}: private version`);eq(calls,0,`${name}: no automatic private read`);
+ eq(await page.locator('.release-version').textContent(),`v${privateDisplayVersion}`,`${name}: private version`);eq(calls,0,`${name}: no automatic private read`);
  await page.locator('.wine-supplies-shortcut').click();
  const section=page.getByRole('region',{name:'Wine Supplies / To Buy'}),button=section.getByRole('button',{name:'Refresh from LifeOS'});
  await button.focus();await page.keyboard.press('Enter');await section.getByRole('status').filter({hasText:'Refresh successful.'}).waitFor();eq(calls,1,`${name}: real fetch path triggered (synthetic upstream)`);

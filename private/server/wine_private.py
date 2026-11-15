@@ -114,9 +114,13 @@ def authorize(headers, peer_uid, policy, method, path, whois=local_whois):
         address = str(ipaddress.ip_address(h.get('x-forwarded-for', '')))
         w = whois(address)
         n, user = w['Node'], w['UserProfile']
-        if user.get('LoginName', '').lower() != login.lower() or n.get('StableID') not in policy['device_ids'] or n.get('Tags') or not n.get('MachineAuthorized') or not future(n.get('KeyExpiry')):
+        if user.get('LoginName', '').lower() != login.lower() or n.get('StableID') not in policy['device_ids'] or n.get('Tags') or n.get('MachineAuthorized') is not True or not future(n.get('KeyExpiry')):
             raise ValueError('Unauthorized node')
-        if not any(ipaddress.ip_address(address) in ipaddress.ip_network(a) for a in n.get('Addresses', [])):
+        if type(n.get('User')) is not int or n['User'] <= 0 or type(user.get('ID')) is not int or n['User'] != user['ID']:
+            raise ValueError('Owner mismatch')
+        # Addresses are node host prefixes, never subnet routes or AllowedIPs.
+        addresses = [ipaddress.ip_network(a, strict=True) for a in n.get('Addresses', [])]
+        if not any(a.prefixlen == a.max_prefixlen and ipaddress.ip_address(address) == a.network_address for a in addresses):
             raise ValueError('Address mismatch')
     except Exception:
         raise Failure(403, 'forbidden') from None
