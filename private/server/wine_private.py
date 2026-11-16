@@ -4,6 +4,7 @@ import argparse
 from contextlib import ExitStack
 from dataclasses import dataclass
 import datetime as dt
+from email.utils import parsedate_to_datetime
 import http.client
 import ipaddress
 import json
@@ -207,7 +208,107 @@ class VerifiedProxy:
             raise Failure(403, 'forbidden') from None
 
 
-def authorize(headers, policy, method, path, whois):
+class DeviceAuthorization:
+    """Fixed-host read-only status; credentials and renewable tokens stay in memory."""
+    scope = 'devices:core:read'
+
+    def __init__(self, client_id, secret, device_ids, transport=None):
+        self.client_id, self.secret = client_id, secret
+        self.device_ids = frozenset(device_ids)
+        self.transport = transport
+        self.token, self.token_until = None, 0
+        self.token_lock = threading.Lock()
+
+    def request(self, method, path, headers, body=None):
+        # Only these two operations are possible; no device writes/list queries.
+        if not ((method == 'POST' and path == '/api/v2/oauth/token') or
+                (method == 'GET' and path.startswith('/api/v2/device/') and path.removeprefix('/api/v2/device/') in self.device_ids)):
+            raise ValueError('Operation outside authorization boundary')
+        conn = None
+        try:
+            if self.transport:
+                status, response_headers, raw = self.transport(method, path, headers, body)
+            else:
+                deadline = time.monotonic() + 8
+                conn = http.client.HTTPSConnection('api.tailscale.com', timeout=4)
+                conn.request(method, path, body=body, headers=headers)
+                response = conn.getresponse()
+                status, response_headers = response.status, dict(response.getheaders())
+                chunks, size = [], 0
+                while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError()
+                    if conn.sock is not None:
+                        conn.sock.settimeout(min(4, remaining))
+                    chunk = response.read1(min(65536, 131073 - size))
+                    if not chunk:
+                        break
+                    chunks.append(chunk); size += len(chunk)
+                    if size > 131072:
+                        raise ValueError('Response limit')
+                raw = b''.join(chunks)
+            h = {k.lower(): v for k, v in response_headers.items()}
+            date = parsedate_to_datetime(h.get('date', ''))
+            if date.tzinfo is None or abs((dt.datetime.now(dt.timezone.utc) - date).total_seconds()) > 60 or int(h.get('age', '0')) != 0:
+                raise ValueError('Stale response')
+            if status != 200 or len(raw) > 131072:
+                if status == 401:
+                    self.token, self.token_until = None, 0
+                raise ValueError('Authorization unavailable')
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise ValueError('Malformed authorization')
+            return data
+        except Exception:
+            raise Failure(503, 'device_authorization_unavailable') from None
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def access_token(self):
+        if not self.token_lock.acquire(timeout=4):
+            raise Failure(503, 'device_authorization_unavailable')
+        try:
+            if self.token and time.monotonic() < self.token_until:
+                return self.token
+            self.token, self.token_until = None, 0
+            body = urlencode({'grant_type': 'client_credentials', 'client_id': self.client_id,
+                              'client_secret': self.secret, 'scope': self.scope})
+            data = self.request('POST', '/api/v2/oauth/token', {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}, body)
+            token, ttl = data.get('access_token'), data.get('expires_in')
+            if data.get('token_type', '').lower() != 'bearer' or set(data.get('scope', '').split()) != {self.scope} or type(ttl) is not int or not 60 < ttl <= 3600:
+                raise Failure(503, 'device_authorization_unavailable')
+            if not isinstance(token, str) or not token.startswith('tskey-') or not 20 <= len(token) <= 4096 or not token.isascii() or any(c.isspace() for c in token):
+                raise Failure(503, 'device_authorization_unavailable')
+            self.token, self.token_until = token, time.monotonic() + ttl - 60
+            return token
+        finally:
+            self.token_lock.release()
+
+    def verify(self, node, user):
+        try:
+            stable = node['StableID']
+            if stable not in self.device_ids:
+                return False
+            data = self.request('GET', '/api/v2/device/' + stable,
+                                {'Authorization': 'Bearer ' + self.access_token(), 'Accept': 'application/json', 'Cache-Control': 'no-cache'})
+            if data.get('authorized') is not True or data.get('nodeId') != stable or data.get('user', '').lower() != user['LoginName'].lower():
+                return False
+            if not isinstance(data.get('tags', []), list) or data.get('tags') or not isinstance(node.get('Key'), str) or not node['Key'] or data.get('nodeKey') != node['Key']:
+                return False
+            expected = [str(ipaddress.ip_interface(a).ip) for a in node['Addresses']]
+            actual = [str(ipaddress.ip_address(a)) for a in data['addresses']]
+            if len(actual) != len(set(actual)) or sorted(actual) != sorted(expected):
+                return False
+            expiry = dt.datetime.fromisoformat(data['expires'].replace('Z', '+00:00'))
+            local_expiry = dt.datetime.fromisoformat(node['KeyExpiry'].replace('Z', '+00:00'))
+            return expiry == local_expiry and future(data['expires']) and future(node['KeyExpiry'])
+        except Exception:
+            return False
+
+
+def authorize(headers, policy, method, path, whois, device_api=None):
     # Kernel proxy authentication occurs before this application/identity gate.
     if not future(policy['authorization_expires_at']):
         raise Failure(403, 'forbidden')
@@ -234,7 +335,7 @@ def authorize(headers, policy, method, path, whois):
         address = str(ipaddress.ip_address(h.get('x-forwarded-for', '')))
         w = whois(address)
         n, user = w['Node'], w['UserProfile']
-        if user.get('LoginName', '').lower() != login.lower() or n.get('StableID') not in policy['device_ids'] or n.get('Tags') or n.get('MachineAuthorized') is not True or not future(n.get('KeyExpiry')):
+        if user.get('LoginName', '').lower() != login.lower() or n.get('StableID') not in policy['device_ids'] or n.get('Tags') or not future(n.get('KeyExpiry')):
             raise ValueError('Unauthorized node')
         if type(n.get('User')) is not int or n['User'] <= 0 or type(user.get('ID')) is not int or n['User'] != user['ID']:
             raise ValueError('Owner mismatch')
@@ -242,6 +343,13 @@ def authorize(headers, policy, method, path, whois):
         addresses = [ipaddress.ip_network(a, strict=True) for a in n.get('Addresses', [])]
         if not any(a.prefixlen == a.max_prefixlen and ipaddress.ip_address(address) == a.network_address for a in addresses):
             raise ValueError('Address mismatch')
+        if 'MachineAuthorized' in n:
+            if n['MachineAuthorized'] is not True:
+                raise ValueError('Explicitly unauthorized')
+        elif device_api is None or device_api.verify(n, user) is not True:
+            raise ValueError('No positive machine authorization')
+        if not future(policy['authorization_expires_at']) or not future(n.get('KeyExpiry')):
+            raise ValueError('Authorization expired during verification')
     except Exception:
         raise Failure(403, 'forbidden') from None
     if method not in ('GET', 'HEAD'):
@@ -455,10 +563,11 @@ class NotionReader:
 class WineServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
     daemon_threads = True
     request_queue_size = 16
-    def __init__(self, socket_path, policy_path, dist, token):
+    def __init__(self, socket_path, policy_path, dist, token, device_api=None):
         self.policy_path = policy_path
         policy = load_policy(policy_path)
         self.reader = NotionReader(token, policy['source_page'], policy['source_parent'])
+        self.device_api = device_api
         self.dist = Path(dist).resolve()
         self.limit_lock = threading.Lock()
         self.limits = {}
@@ -517,7 +626,7 @@ class Handler(BaseHTTPRequestHandler):
             if policy['source_page'] != self.server.reader.page or policy['source_parent'] != self.server.reader.parent:
                 raise Failure(503, 'configuration_changed')
             with VerifiedProxy(self.connection) as proxy:
-                node = authorize(self.headers, policy, self.command, self.path, proxy.whois)
+                node = authorize(self.headers, policy, self.command, self.path, proxy.whois, self.server.device_api)
                 proxy.check_live()
                 self.serve_authorized(node, proxy)
         except Failure as e:
@@ -575,7 +684,10 @@ def main():
     sock = Path(args.socket)
     if sock.exists():
         raise SystemExit('Socket already exists; refuse replacement')
-    with WineServer(str(sock), args.policy, args.dist, token) as server:
+    policy = load_policy(args.policy)
+    device_api = DeviceAuthorization(protected_file(Path(directory) / 'tailscale-oauth-id'),
+                                     protected_file(Path(directory) / 'tailscale-oauth-secret'), policy['device_ids'])
+    with WineServer(str(sock), args.policy, args.dist, token, device_api) as server:
         try:
             server.serve_forever()
         finally:

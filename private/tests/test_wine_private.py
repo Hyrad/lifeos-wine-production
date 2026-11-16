@@ -240,6 +240,21 @@ class PolicyAndHttpTests(unittest.TestCase):
                     self.assertEqual(status,403);self.assertNotIn(b'PRIVATE',body)
             finally:server.shutdown();thread.join()
 
+    def test_omission_fallback_returns_only_reader_data(self):
+        with w.WineServer(str(self.folder/'socket'),self.policy,self.dist,'synthetic') as server:
+            thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+            try:
+                with patch.object(w, 'VerifiedProxy') as trusted, patch.object(server.reader, 'read', return_value={'items':[], 'fetchedAt':'2030-01-01T00:00:00Z'}):
+                    identity=whois('100.64.0.1');del identity['Node']['MachineAuthorized']
+                    proof=trusted.return_value.__enter__.return_value;proof.whois.return_value=identity
+                    from unittest.mock import Mock
+                    server.device_api=Mock();server.device_api.verify.return_value=True
+                    status,_,body=self.request(server,w.API_PATH,dict(headers().items()))
+                    self.assertEqual(status,200);self.assertEqual(set(json.loads(body)),{'items','fetchedAt'})
+                    self.assertNotIn(b'nodeId',body);self.assertNotIn(b'access_token',body)
+                    server.device_api.verify.assert_called_once_with(identity['Node'],identity['UserProfile'])
+            finally:server.shutdown();thread.join()
+
 
 class UpstreamTests(unittest.TestCase):
     def test_status_timeout_malformed_and_boundaries(self):

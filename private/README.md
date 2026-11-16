@@ -125,9 +125,42 @@ death/restart and same-UID mismatch, simulated numeric PID reuse with a real exi
 handle, socket/path spoofing, missing evidence, bounded LocalAPI failures, and
 HTTP checks that a verified proxy cannot bypass machine authorization.
 
-`MachineAuthorized is True` remains mandatory. No omitted-field fallback or
-Device API provider is implemented or provisioned by this correction. Exact
+In v1.207-private.3, `MachineAuthorized is True` remained mandatory without an
+omitted-field fallback. Exact
 owner/device/address/expiry/tag, forwarding and origin checks remain in force.
 Actual host evidence, device results and private operational values belong only
 in the authorized release records. Activation, remote-device ingress and live
 browser refresh remain separate gates.
+
+## OAuth authorization compatibility — v1.207-private.4
+
+Only an omitted LocalAPI MachineAuthorized field can invoke Device API fallback.
+An explicit false or malformed value always denies without a control-plane call.
+All existing owner, numeric user identity, allowed StableID, exact forwarded host
+address, untagged status, key/policy expiry and trusted proxy/origin checks still
+apply. The Device API provider independently restricts calls to the runtime-policy
+allowlist; no real identifiers are compiled into either build.
+
+The server makes a fresh GET to the fixed HTTPS device endpoint for that StableID
+and requires explicit Boolean authorized=true. The returned nodeId, owner,
+addresses, node key and future expiry must agree with LocalAPI. Nonempty or
+malformed tags, stale Date/Age, errors, redirects, malformed/oversized/missing
+responses and contradictory identity deny. Successful device status is never
+cached. Device metadata is never included in the app response.
+
+The dedicated OAuth client must have only devices:core:read, with no tags or other
+scopes. `private/deploy/enter-tailscale-oauth.py` is an owner-run terminal helper:
+both values use hidden input, echo fallback is prohibited, the existing directory
+must be owner-only 0700, files are exclusively created 0600, and existing values
+are never overwritten. The unit loads tailscale-oauth-id and
+tailscale-oauth-secret with LoadCredential alongside the existing Notion token.
+Never pass a value through shell arguments/environment, Git, logs or the browser.
+
+Derived access tokens are requested for that exact scope, validated for token type,
+scope and bounded lifetime, kept only in process memory, and renewed before expiry.
+The only POST allowed is OAuth token exchange; the only Device API operation is
+an allowlisted GET. No listing, device writes or auth-key operations exist. Core
+dumps are disabled in the dedicated unit and entry helper. Fixed-host stdlib HTTPS
+does not follow redirects or use environment proxies. Credential/scoping, actual
+Device API proofs, real ingress and deployment gates must be verified separately;
+synthetic tests do not authorize activation.

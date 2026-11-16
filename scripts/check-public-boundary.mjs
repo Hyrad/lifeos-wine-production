@@ -35,7 +35,7 @@ for (const path of ["index.html", "manifest.webmanifest", "favicon.svg", ...asse
   const content = await readFile(`dist/${path}`, "utf8");
   scanned++;
   assert.doesNotMatch(content, /\/api\/v1\/wine-supplies|Refresh from LifeOS|1\.207-private\.1/, `Private client in public artifact ${path}`);
-  assert.doesNotMatch(content, /(?:ntn_|secret_|sb_secret_|ghp_|github_pat_|sk_live_)[A-Za-z0-9_]{8,}|-----BEGIN (?:RSA |OPENSSH )?PRIVATE KEY-----/, `Credential pattern in ${path}`);
+  assert.doesNotMatch(content, /(?:ntn_|secret_|sb_secret_|ghp_|github_pat_|sk_live_)[A-Za-z0-9_]{8,}|tskey-[A-Za-z0-9_-]{8,}|tailscale-oauth-(?:id|secret)|client_secret|access_token|nodeKey|-----BEGIN (?:RSA |OPENSSH )?PRIVATE KEY-----/, `Credential pattern in ${path}`);
   const withoutURLs = content.replace(/https?:\/\/[^\s"'<>\x60\\)]+/g, url => {
     // The existing notion(id) helper remains a template in Vite's bundle.
     // Its literal IDs are checked against the same fixed allowlist below.
