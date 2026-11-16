@@ -47,16 +47,13 @@ def reader(blocks, hook=None):
     return w.NotionReader('not-a-secret-fixture', PAGE, PARENT, transport)
 
 class IdentityTests(unittest.TestCase):
-    def check_denied(self, h=None, uid=0, policy=None, lookup=whois, method='GET', status=403):
+    def check_denied(self, h=None, policy=None, lookup=whois, method='GET', status=403):
         with self.assertRaises(w.Failure) as e:
-            w.authorize(h or headers(), uid, policy or POLICY, method, w.API_PATH, lookup)
+            w.authorize(h or headers(), policy or POLICY, method, w.API_PATH, lookup)
         self.assertEqual(e.exception.status, status)
 
     def test_explicit_owner_device_allowed(self):
-        self.assertEqual(w.authorize(headers(), 0, POLICY, 'GET', w.API_PATH, whois), 'nDeviceOne')
-
-    def test_direct_socket_spoofing_denied(self):
-        self.check_denied(uid=1000)
+        self.assertEqual(w.authorize(headers(), POLICY, 'GET', w.API_PATH, whois), 'nDeviceOne')
 
     def test_absent_login_401(self):
         self.check_denied(headers(**{'Tailscale-User-Login': None}), status=401)
@@ -106,7 +103,7 @@ class IdentityTests(unittest.TestCase):
                 d = whois(a); d['Node']['Addresses'] = addresses; return d
             with self.subTest(addresses=addresses): self.check_denied(lookup=lookup)
         h = headers(**{'X-Forwarded-For': 'fd7a:115c:a1e0::1'})
-        self.assertEqual(w.authorize(h, 0, POLICY, 'GET', w.API_PATH, whois), 'nDeviceOne')
+        self.assertEqual(w.authorize(h, POLICY, 'GET', w.API_PATH, whois), 'nDeviceOne')
 
     def test_missing_malformed_or_duplicate_forwarding(self):
         for name in ['Host', 'X-Forwarded-Host', 'X-Forwarded-Proto', 'X-Forwarded-For']:
@@ -114,10 +111,6 @@ class IdentityTests(unittest.TestCase):
             h = headers(); h[name] = h[name]; self.check_denied(h)
         for value in ['100.64.0.1:80', 'unknown', '100.64.0.1, 100.64.0.2', ' 100.64.0.1', '[fd7a:115c:a1e0::1]']:
             with self.subTest(value=value): self.check_denied(headers(**{'X-Forwarded-For': value}))
-
-    def test_nonroot_serve_peer_still_denied(self):
-        # A shared low-privilege UID alone does not identify tailscaled.
-        self.check_denied(uid=65534)
 
     def test_expired_policy_and_write_method(self):
         p=copy.deepcopy(POLICY);p['authorization_expires_at']='2020-01-01T00:00:00Z';self.check_denied(policy=p)
@@ -197,8 +190,8 @@ class PolicyAndHttpTests(unittest.TestCase):
         with self.assertRaises(ValueError):w.load_policy(self.policy)
         self.policy.chmod(0o600);p=copy.deepcopy(POLICY);p['device_ids']=[];self.policy.write_text(json.dumps(p))
         with self.assertRaises(ValueError):w.load_policy(self.policy)
-    def request(self,server,path):
-        c=http.client.HTTPConnection('unix',timeout=3);c.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);c.sock.connect(server.server_address);c.request('GET',path);r=c.getresponse();result=(r.status,dict(r.getheaders()),r.read());c.close();return result
+    def request(self,server,path,h=None):
+        c=http.client.HTTPConnection('unix',timeout=3);c.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);c.sock.connect(server.server_address);c.request('GET',path,headers=h or {});r=c.getresponse();result=(r.status,dict(r.getheaders()),r.read());c.close();return result
     def test_real_unprivileged_socket_denied_even_with_no_http_auth(self):
         if os.getuid()==0:self.skipTest('Requires unprivileged test runner')
         with w.WineServer(str(self.folder/'socket'),self.policy,self.dist,'synthetic') as server:
@@ -210,7 +203,7 @@ class PolicyAndHttpTests(unittest.TestCase):
         with w.WineServer(str(self.folder/'socket'),self.policy,self.dist,'synthetic') as server:
             thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
             try:
-                with patch.object(w,'authorize',return_value='nSynthetic'):
+                with patch.object(w,'authorize',return_value='nSynthetic'), patch.object(w, 'VerifiedProxy'):
                     with patch.object(server.reader,'read',return_value={'items':[],'fetchedAt':'2030-01-01T00:00:00Z'}):
                         status,h,body=self.request(server,w.API_PATH);self.assertEqual(status,200);self.assertEqual(json.loads(body)['items'],[]);self.assertIn("frame-ancestors 'none'",h['Content-Security-Policy'])
                     for failure in [w.Failure(503,'source_access_unavailable'),w.Failure(504,'upstream_timeout'),RuntimeError('PRIVATE SECRET MUST NOT LEAK')]:
@@ -218,6 +211,33 @@ class PolicyAndHttpTests(unittest.TestCase):
                             status,h,body=self.request(server,w.API_PATH);self.assertGreaterEqual(status,500);self.assertNotIn(b'PRIVATE',body)
                     self.assertEqual(self.request(server,'/api/v1/wine-supplies?id=other')[0],404)
                     self.assertEqual(self.request(server,w.APP_PATH+'../../policy.json')[0],404)
+            finally:server.shutdown();thread.join()
+
+    def test_verified_proxy_cannot_bypass_missing_machine_authorization(self):
+        with w.WineServer(str(self.folder/'socket'),self.policy,self.dist,'synthetic') as server:
+            thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+            try:
+                with patch.object(w, 'VerifiedProxy') as trusted, patch.object(server.reader, 'read') as read:
+                    proof = trusted.return_value.__enter__.return_value
+                    for value in [None, False]:
+                        identity = whois('100.64.0.1')
+                        if value is None: del identity['Node']['MachineAuthorized']
+                        else: identity['Node']['MachineAuthorized'] = value
+                        proof.whois.return_value = identity
+                        self.assertEqual(self.request(server,w.API_PATH,dict(headers().items()))[0],403)
+                    read.assert_not_called()
+            finally:server.shutdown();thread.join()
+
+    def test_daemon_death_before_response_does_not_return_private_data(self):
+        with w.WineServer(str(self.folder/'socket'),self.policy,self.dist,'synthetic') as server:
+            thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+            try:
+                with patch.object(w, 'VerifiedProxy') as trusted, patch.object(server.reader, 'read', return_value={'items':['SYNTHETIC PRIVATE RESULT']}):
+                    proof = trusted.return_value.__enter__.return_value
+                    proof.whois.return_value = whois('100.64.0.1')
+                    proof.check_live.side_effect = [None,w.Failure(403,'forbidden')]
+                    status,_,body=self.request(server,w.API_PATH,dict(headers().items()))
+                    self.assertEqual(status,403);self.assertNotIn(b'PRIVATE',body)
             finally:server.shutdown();thread.join()
 
 

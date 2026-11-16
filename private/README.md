@@ -20,8 +20,8 @@ is `.private-dist/` (ignored). Never upload that directory to Pages.
 - `python3 private/deploy/stage.py`: stage a private artifact and hash manifest;
   does not install a unit, activate a listener or modify Serve.
 
-`server/wine_private.py` accepts only a private Unix socket, requires root proxy
-peer credentials and exact forwarding context, owner login and approved stable
+`server/wine_private.py` accepts only a private Unix socket, verifies the actual
+LocalAPI daemon's kernel peer identity and exact forwarding context, owner login and approved stable
 node ID via Tailscale LocalAPI whois. Node authorization/key expiry and a bounded
 owner-policy expiry are rechecked each request. It rejects missing identity with
 401, other identity/origin failures with 403, and unapproved methods with 405.
@@ -93,12 +93,41 @@ Neither network-map membership nor online status is a replacement. See the
 [device approval documentation](https://tailscale.com/kb/1099/device-approval) and
 [Serve identity documentation](https://tailscale.com/kb/1312/serve).
 
-Keep the protected socket's proxy identity check. A low-privilege UID or process
-name alone does not authenticate tailscaled. If the actual ingress peer differs
-from the reviewed root-peer contract, stop before activation until a secure,
-host-verified daemon identity check is implemented and tested. Do not accept an
-arbitrary root or shared low-privilege process as a compatibility fallback.
-Actual host evidence, source/build discrepancies, device results and private
-operational values belong only in the authorized release records. No omitted-field
-fallback is enabled in this candidate; activation and live browser refresh remain
-separate gates.
+## Namespace-aware proxy identity — v1.207-private.3
+
+Systemd's per-user filesystem sandbox can leave host root unmapped, so the
+daemon's UID appears as the kernel overflow UID inside the application. Keep
+the sandbox and private socket directory/modes; neither UID zero nor the overflow
+UID alone authenticates a proxy. No service-template protection was removed.
+
+Each request now obtains SO_PEERCRED and SO_PEERPIDFD evidence for both the incoming
+connection and a fresh connection to the fixed `/run/tailscale/tailscaled.sock`.
+The full kernel credential tuples must match and both process handles must remain
+alive. The handles come directly from their sockets, never a cached PID or
+pidfd_open(PID), so numeric PID reuse cannot revive old evidence. A dead daemon,
+restart, mismatched peer, missing kernel/proc evidence or LocalAPI failure denies
+the request. Liveness is checked around whois and before returning data/assets.
+
+The LocalAPI path is anchored by an O_NOFOLLOW directory walk from `/`, requiring
+root ownership as visible in the current UID namespace and no group/world-writable
+parent directories. The final file must be a root-owned Unix socket. It is pinned
+with O_PATH and dialed through `/proc/self/fd`, preventing a pathname substitution
+between validation and connect. The verified connection also performs whois;
+automatic reconnection is disabled. No alternate path, environment override or
+unverified transport fallback is available. Host root and the host-controlled
+filesystem/mount namespace remain trust anchors; an attacker controlling those
+can replace the application itself.
+
+This Linux-only check requires kernel SO_PEERPIDFD support and readable proc
+namespace/fdinfo evidence. Python versions without the symbolic constant use the
+Linux UAPI value 77; unsupported kernels fail closed. Tests include real process
+death/restart and same-UID mismatch, simulated numeric PID reuse with a real exited
+handle, socket/path spoofing, missing evidence, bounded LocalAPI failures, and
+HTTP checks that a verified proxy cannot bypass machine authorization.
+
+`MachineAuthorized is True` remains mandatory. No omitted-field fallback or
+Device API provider is implemented or provisioned by this correction. Exact
+owner/device/address/expiry/tag, forwarding and origin checks remain in force.
+Actual host evidence, device results and private operational values belong only
+in the authorized release records. Activation, remote-device ingress and live
+browser refresh remain separate gates.

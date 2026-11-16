@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Owner-private Wine: Unix socket only, fixed read-only Notion source, no public mode."""
 import argparse
+from contextlib import ExitStack
+from dataclasses import dataclass
 import datetime as dt
 import http.client
 import ipaddress
@@ -9,6 +11,7 @@ import mimetypes
 import os
 from pathlib import Path
 import re
+import select
 import socket
 import socketserver
 import stat
@@ -69,26 +72,143 @@ def load_policy(path, allow_expired=False):
     return p
 
 
-def local_whois(address):
-    conn = http.client.HTTPConnection('local-tailscaled.sock', timeout=1)
+def visible_root_id(kind):
+    """Host root may be unmapped in systemd's per-user filesystem sandbox."""
+    rows = Path('/proc/self/' + kind + '_map').read_text().splitlines()
+    if not rows or len(rows) > 340:
+        raise ValueError('Missing namespace evidence')
+    for row in rows:
+        inside, outside, length = map(int, row.split())
+        if inside < 0 or outside < 0 or length <= 0:
+            raise ValueError('Invalid namespace evidence')
+        if outside == 0:
+            return inside
+    return int(Path('/proc/sys/kernel/overflow' + kind).read_text())
+
+
+def pinned_localapi_socket():
+    """Walk a fixed root-controlled path without symlinks, then dial its inode."""
+    sock = None
     try:
-        conn.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        conn.sock.settimeout(1)
-        conn.sock.connect('/run/tailscale/tailscaled.sock')
-        conn.request('GET', '/localapi/v0/whois?addr=' + quote(address, safe=''), headers={'Host': 'local-tailscaled.sock'})
-        r = conn.getresponse()
-        raw = r.read(131073)
-        if r.status != 200 or len(raw) > 131072:
-            raise ValueError('Whois unavailable')
-        return json.loads(raw)
-    finally:
-        conn.close()
+        root_uid = visible_root_id('uid')
+        flags = os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC
+        with ExitStack() as files:
+            fd = os.open('/', flags | os.O_DIRECTORY)
+            files.callback(os.close, fd)
+            for component in (None, 'run', 'tailscale'):
+                if component is not None:
+                    fd = os.open(component, flags | os.O_DIRECTORY, dir_fd=fd)
+                    files.callback(os.close, fd)
+                meta = os.fstat(fd)
+                if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != root_uid or meta.st_mode & 0o022:
+                    raise ValueError('Untrusted LocalAPI directory')
+            fd = os.open('tailscaled.sock', flags, dir_fd=fd)
+            files.callback(os.close, fd)
+            meta = os.fstat(fd)
+            if not stat.S_ISSOCK(meta.st_mode) or meta.st_uid != root_uid:
+                raise ValueError('Untrusted LocalAPI socket')
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            sock.connect('/proc/self/fd/' + str(fd))
+        return sock
+    except Exception:
+        if sock is not None:
+            sock.close()
+        raise Failure(403, 'forbidden') from None
 
 
-def authorize(headers, peer_uid, policy, method, path, whois=local_whois):
-    # The only trusted ingress is root tailscaled connecting to our private socket.
-    if peer_uid != 0:
-        raise Failure(403, 'forbidden')
+@dataclass(frozen=True)
+class KernelPeer:
+    credentials: tuple
+    pidfd: int
+
+    def check_live(self):
+        pid, uid, gid = self.credentials
+        if pid <= 0 or uid < 0 or gid < 0:
+            raise ValueError('Invalid peer credentials')
+        # A numeric PID alone can be reused. This handle comes from the socket,
+        # not pidfd_open(PID), and remains tied to its original peer process.
+        info = Path('/proc/self/fdinfo/' + str(self.pidfd)).read_text()
+        lines = [line for line in info.splitlines() if line.startswith('Pid:')]
+        if len(lines) != 1 or int(lines[0].split(':', 1)[1]) != pid:
+            raise ValueError('Missing peer process evidence')
+        poll = select.poll()
+        poll.register(self.pidfd, select.POLLIN | select.POLLHUP | select.POLLERR)
+        if poll.poll(0):
+            raise ValueError('Peer process exited')
+
+
+def kernel_peer(sock, resources):
+    raw = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i'))
+    credentials = struct.unpack('3i', raw)
+    # Linux UAPI SO_PEERPIDFD=77; older Python builds do not name it. Unsupported
+    # kernels fail closed. Never fall back to UID, comm, or a numeric PID lookup.
+    fd = sock.getsockopt(socket.SOL_SOCKET, getattr(socket, 'SO_PEERPIDFD', 77))
+    resources.callback(os.close, fd)
+    os.set_inheritable(fd, False)
+    peer = KernelPeer(credentials, fd)
+    peer.check_live()
+    return peer
+
+
+class VerifiedProxy:
+    """Per-request proof bound to the daemon on the protected LocalAPI inode."""
+    def __init__(self, incoming):
+        self.incoming_socket = incoming
+        self.resources = ExitStack()
+        self.incoming = self.daemon = self.conn = None
+        self.closed = True
+
+    def __enter__(self):
+        try:
+            self.closed = False
+            self.incoming = kernel_peer(self.incoming_socket, self.resources)
+            self.conn = http.client.HTTPConnection('local-tailscaled.sock', timeout=1)
+            self.resources.callback(self.conn.close)
+            self.conn.auto_open = 0  # Never reconnect to an unverified endpoint.
+            self.conn.sock = pinned_localapi_socket()
+            self.daemon = kernel_peer(self.conn.sock, self.resources)
+            self.check_live()
+            return self
+        except Exception:
+            self.closed = True
+            self.resources.close()
+            raise Failure(403, 'forbidden') from None
+
+    def __exit__(self, *args):
+        self.closed = True
+        self.resources.close()
+
+    def check_live(self):
+        try:
+            if self.closed:
+                raise ValueError('Closed proxy proof')
+            self.incoming.check_live()
+            self.daemon.check_live()
+            if self.incoming.credentials != self.daemon.credentials:
+                raise ValueError('Proxy process mismatch')
+        except Exception:
+            raise Failure(403, 'forbidden') from None
+
+    def whois(self, address):
+        try:
+            self.check_live()
+            self.conn.request('GET', '/localapi/v0/whois?addr=' + quote(address, safe=''), headers={'Host': 'local-tailscaled.sock'})
+            r = self.conn.getresponse()
+            raw = r.read(131073)
+            if r.status != 200 or len(raw) > 131072:
+                raise ValueError('Whois unavailable')
+            result = json.loads(raw)
+            if not isinstance(result, dict):
+                raise ValueError('Invalid whois')
+            self.check_live()
+            return result
+        except Exception:
+            raise Failure(403, 'forbidden') from None
+
+
+def authorize(headers, policy, method, path, whois):
+    # Kernel proxy authentication occurs before this application/identity gate.
     if not future(policy['authorization_expires_at']):
         raise Failure(403, 'forbidden')
     critical = ['host', 'tailscale-user-login', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'origin', 'sec-fetch-site', 'x-lifeos-client']
@@ -393,35 +513,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if len(self.path) > 2048 or sum(len(k) + len(v) for k, v in self.headers.items()) > 16384:
                 raise Failure(431, 'request_too_large')
-            peer = struct.unpack('3i', self.connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))[1]
             policy = load_policy(self.server.policy_path, allow_expired=True)  # Revocation/expiry applies without restart.
             if policy['source_page'] != self.server.reader.page or policy['source_parent'] != self.server.reader.parent:
                 raise Failure(503, 'configuration_changed')
-            node = authorize(self.headers, peer, policy, self.command, self.path)
-            if self.path == API_PATH:
-                self.server.rate(node)
-                result = json.dumps(self.server.reader.read(), ensure_ascii=False).encode()
-                if len(result) > 200000:
-                    raise Failure(502, 'source_limit')
-                self.respond(200, result)
-                return
-            if self.path == '/healthz':
-                self.respond(200, b'{"ok":true}')
-                return
-            if self.path == '/':
-                self.respond(303, b'', extra={'Location': APP_PATH + '#supplies'})
-                return
-            if '?' in self.path or '%' in self.path or not self.path.startswith(APP_PATH):
-                raise Failure(404, 'not_found')
-            relative = self.path[len(APP_PATH):] or 'index.html'
-            target = (self.server.dist / relative).resolve()
-            if not target.is_relative_to(self.server.dist) or not target.is_file() or target.is_symlink() or target.suffix not in ('.html', '.js', '.css', '.svg', '.png', '.webmanifest'):
-                raise Failure(404, 'not_found')
-            raw = target.read_bytes()
-            if len(raw) > 1048576:
-                raise Failure(404, 'not_found')
-            mime = {'.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png'}[target.suffix]
-            self.respond(200, raw, mime)
+            with VerifiedProxy(self.connection) as proxy:
+                node = authorize(self.headers, policy, self.command, self.path, proxy.whois)
+                proxy.check_live()
+                self.serve_authorized(node, proxy)
         except Failure as e:
             self.respond(e.status, json.dumps({'error': e.code}).encode())
         except (BrokenPipeError, ConnectionResetError):
@@ -430,6 +528,34 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(503, b'{"error":"service_unavailable"}')
         finally:
             self.close_connection = True
+
+    def serve_authorized(self, node, proxy):
+        if self.path == API_PATH:
+            self.server.rate(node)
+            result = json.dumps(self.server.reader.read(), ensure_ascii=False).encode()
+            if len(result) > 200000:
+                raise Failure(502, 'source_limit')
+            proxy.check_live()
+            self.respond(200, result)
+            return
+        if self.path == '/healthz':
+            self.respond(200, b'{"ok":true}')
+            return
+        if self.path == '/':
+            self.respond(303, b'', extra={'Location': APP_PATH + '#supplies'})
+            return
+        if '?' in self.path or '%' in self.path or not self.path.startswith(APP_PATH):
+            raise Failure(404, 'not_found')
+        relative = self.path[len(APP_PATH):] or 'index.html'
+        target = (self.server.dist / relative).resolve()
+        if not target.is_relative_to(self.server.dist) or not target.is_file() or target.is_symlink() or target.suffix not in ('.html', '.js', '.css', '.svg', '.png', '.webmanifest'):
+            raise Failure(404, 'not_found')
+        raw = target.read_bytes()
+        if len(raw) > 1048576:
+            raise Failure(404, 'not_found')
+        mime = {'.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png'}[target.suffix]
+        proxy.check_live()
+        self.respond(200, raw, mime)
 
     do_GET = do_HEAD = do_POST = do_PUT = do_PATCH = do_DELETE = do_OPTIONS = do_TRACE = do_CONNECT = handle_any
 
