@@ -23,7 +23,8 @@ import {
   wineSections,
   wineSources,
 } from "./data/wine";
-import WineSupplies from "./components/WineSupplies";
+import { identity, boundary } from "#wine-edition";
+import WineSupplies from "#wine-supplies";
 
 function WineCard({ section, primary = false }: {
   section: typeof wineSections[number];
@@ -76,7 +77,7 @@ export default function WinePage() {
                 Plan a batch. Follow its progress. Learn from what you make.
               </p>
               <p className="home-identity">
-                Shopping snapshot · Live records stay in Notion.
+                {identity}
               </p>
               <a className="text-link wine-supplies-shortcut" href="#supplies">
                 Wine Supplies / To Buy <ArrowRight size={14} aria-hidden="true" />
@@ -168,9 +169,7 @@ export default function WinePage() {
             <div className="wine-boundary">
               <LockKeyhole size={14} aria-hidden="true" />
               <p>
-                This page provides navigation and an approved shopping snapshot.
-                It doesn’t display live batch status, measurements, tasks, or stock counts. Notion and Drive
-                keep their existing access controls.
+                {boundary}
               </p>
             </div>
           </section>

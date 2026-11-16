@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Compass } from "lucide-react";
-import { displayVersion as version } from "../../package.json";
+import { version, badge } from "#wine-edition";
 import { sources } from "../data/navigation";
 import { homePagePath, wineNavigation } from "../data/wine";
 
@@ -127,7 +127,7 @@ export function Topbar() {
       <div className="release-info">
         <span className="mode-badge">
           <span />
-          Navigation & snapshot
+          {badge}
         </span>
         <span className="release-version" title="App version">
           v{version}

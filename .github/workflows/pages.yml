@@ -68,3 +68,36 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+
+  validate-private-candidate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+        with:
+          version: 11.25.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Test private API using synthetic identities and Notion responses
+        run: pnpm test:private-api
+      - name: Build private candidate (never uploaded to Pages)
+        run: pnpm build:private
+      - name: Install browser runtime
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Test private UI with synthetic API responses (not live acceptance)
+        run: |
+          pnpm preview --mode private --port 4178 > /tmp/wine-private-preview.log 2>&1 &
+          WINE_PREVIEW_PID=$!
+          trap 'kill "$WINE_PREVIEW_PID"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4178/lifeos-wine-production/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/private-browser-check.mjs

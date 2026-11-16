@@ -64,3 +64,15 @@ The Notion-to-Markdown memory refactor remains deferred.
 ## iPhone Home Screen app
 
 Open the deployed application in Safari → Share → Add to Home Screen → enable Open as Web App → Add. The manifest, Apple touch icon and standalone safe-area styling support a separate app icon/window. Physical iPhone installation remains a device acceptance check. No service worker, offline caching or push notifications are included.
+
+## WINE-SUPPLIES-02B private candidate
+
+The public package/version and default build remain v1.205. A separate unpublished
+owner-private edition uses `privateDisplayVersion` and `pnpm build:private`.
+Its Unix-socket backend, owner provisioning instructions, synthetic test scope
+and activation gates are documented in [private/README.md](private/README.md).
+No private deployment is performed by the GitHub Pages workflow. PR-only private
+validation uses synthetic data and never uploads private artifacts to Pages.
+Private hostnames, owner/device allowlists, source pins and credentials are runtime
+configuration outside this repository. PR #7 remains a separate, unmerged public
+fallback candidate; this branch does not merge it.
